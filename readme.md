@@ -221,6 +221,6 @@ If you need help creating the merge script, just ask.
 
 ## Thanks & Credits
 
-- **Shizof** — Engine wizardry behind Spell Wheel  (This mod uses the same basic mechanism for the UI)
+- **Shizof** — Engine wizardry behind Spell Wheel, which was a great inspiration for this mod. And extra thanks & credits for letting me use the super cool swirling orb thingy effect
 - **RavenKZP** — Inspiration from In-Game Patcher  
 - **Icons8** — UI icons
