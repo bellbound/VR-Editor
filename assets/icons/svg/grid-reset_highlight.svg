@@ -1,0 +1,38 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512px" height="512px" viewBox="0,0,256,256"><defs>
+    <!-- Snap-to-grid gradients (highlight colors) -->
+    <linearGradient x1="20.597" y1="-0.403" x2="49.342" y2="28.342" gradientUnits="userSpaceOnUse" id="grid-color-1"><stop offset="0" stop-color="#2e2b54"></stop><stop offset="1" stop-color="#da619b"></stop></linearGradient>
+    <linearGradient x1="20.597" y1="11.597" x2="49.342" y2="40.342" gradientUnits="userSpaceOnUse" id="grid-color-2"><stop offset="0" stop-color="#2e2b54"></stop><stop offset="1" stop-color="#da619b"></stop></linearGradient>
+    <linearGradient x1="21.171" y1="24.171" x2="46.548" y2="49.548" gradientUnits="userSpaceOnUse" id="grid-color-3"><stop offset="0" stop-color="#2e2b54"></stop><stop offset="1" stop-color="#da619b"></stop></linearGradient>
+    <linearGradient x1="4.928" y1="1.928" x2="30.306" y2="27.306" gradientUnits="userSpaceOnUse" id="grid-color-4"><stop offset="0" stop-color="#2e2b54"></stop><stop offset="1" stop-color="#da619b"></stop></linearGradient>
+    <linearGradient x1="2.597" y1="11.597" x2="31.342" y2="40.342" gradientUnits="userSpaceOnUse" id="grid-color-5"><stop offset="0" stop-color="#2e2b54"></stop><stop offset="1" stop-color="#da619b"></stop></linearGradient>
+    <linearGradient x1="2.597" y1="23.597" x2="31.342" y2="52.342" gradientUnits="userSpaceOnUse" id="grid-color-6"><stop offset="0" stop-color="#2e2b54"></stop><stop offset="1" stop-color="#da619b"></stop></linearGradient>
+</defs><g fill="none" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal">
+    <!-- Snap-to-grid (full size) -->
+    <g transform="scale(5.33333,5.33333)">
+        <rect x="24" y="6" width="18" height="12" fill="url(#grid-color-1)"></rect>
+        <rect x="24" y="18" width="18" height="12" fill="url(#grid-color-2)"></rect>
+        <path d="M42,30v6c0,3.314 -2.686,6 -6,6h-12v-12z" fill="url(#grid-color-3)"></path>
+        <path d="M24,6v12h-18v-6c0,-3.314 2.686,-6 6,-6z" fill="url(#grid-color-4)"></path>
+        <rect x="6" y="18" width="18" height="12" fill="url(#grid-color-5)"></rect>
+        <rect x="6" y="30" width="18" height="12" fill="url(#grid-color-6)"></rect>
+    </g>
+    <!-- Reset overlay (lower right corner) - nested SVG for correct gradient coordinates -->
+    <svg x="134" y="134" width="122" height="122" viewBox="0,0,256,256">
+        <defs>
+            <linearGradient x1="0.968" y1="4.674" x2="69.116" y2="61.857" gradientUnits="userSpaceOnUse" id="reset-color-1"><stop offset="0" stop-color="#2e2b54"></stop><stop offset="1" stop-color="#da619b"></stop></linearGradient>
+            <linearGradient x1="16.485" y1="47.733" x2="35.298" y2="15.148" gradientUnits="userSpaceOnUse" id="reset-color-2"><stop offset="0" stop-color="#2e2b54"></stop><stop offset="1" stop-color="#da619b"></stop></linearGradient>
+            <linearGradient x1="19.831" y1="30.125" x2="42.703" y2="16.92" gradientUnits="userSpaceOnUse" id="reset-color-3"><stop offset="0" stop-color="#2e2b54"></stop><stop offset="1" stop-color="#da619b"></stop></linearGradient>
+            <linearGradient x1="31.515" y1="0.267" x2="12.702" y2="32.852" gradientUnits="userSpaceOnUse" id="reset-color-4"><stop offset="0" stop-color="#2e2b54"></stop><stop offset="1" stop-color="#da619b"></stop></linearGradient>
+            <linearGradient x1="28.17" y1="17.876" x2="5.298" y2="31.081" gradientUnits="userSpaceOnUse" id="reset-color-5"><stop offset="0" stop-color="#2e2b54"></stop><stop offset="1" stop-color="#da619b"></stop></linearGradient>
+        </defs>
+        <g fill="none" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" style="mix-blend-mode: normal">
+            <g transform="scale(5.33333,5.33333)">
+                <circle cx="24" cy="24" r="20" fill="url(#reset-color-1)"></circle>
+                <path d="M24,35.924c-2.523,0 -4.936,-0.778 -6.975,-2.252l0.819,-1.134c0.769,-1.065 2.155,-1.568 3.386,-1.109c0.877,0.327 1.811,0.496 2.769,0.496c4.369,0 7.924,-3.555 7.924,-7.924h4c0.001,6.574 -5.348,11.923 -11.923,11.923z" fill="url(#reset-color-2)"></path>
+                <path d="M34,17l5,7h-10z" fill="url(#reset-color-3)"></path>
+                <path d="M24,12.076c2.523,0 4.936,0.778 6.975,2.252l-0.819,1.134c-0.769,1.065 -2.155,1.568 -3.386,1.109c-0.877,-0.327 -1.811,-0.496 -2.769,-0.496c-4.369,0 -7.924,3.555 -7.924,7.924h-4c-0.001,-6.574 5.348,-11.923 11.923,-11.923z" fill="url(#reset-color-4)"></path>
+                <path d="M14,31l-5,-7h10z" fill="url(#reset-color-5)"></path>
+            </g>
+        </g>
+    </svg>
+</g></svg>

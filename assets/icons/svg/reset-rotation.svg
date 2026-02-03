@@ -1,0 +1,12 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="512px" height="512px" viewBox="0,0,256,256"><defs><linearGradient x1="25.78739" y1="40.4258" x2="1.41331" y2="32.5908" gradientUnits="userSpaceOnUse" id="color-1"><stop offset="0"
+  stop-color="#ffffff"></stop><stop offset="1" stop-color="#262626" stop-opacity="0.8"></stop></linearGradient><linearGradient x1="-14.133" y1="35.203" x2="48.759" y2="4.268"
+  gradientUnits="userSpaceOnUse" id="color-2"><stop offset="0" stop-color="#ffffff"></stop><stop offset="1" stop-color="#262626" stop-opacity="0.8"></stop></linearGradient><linearGradient x1="22.27156"
+  y1="7.59125" x2="46.64564" y2="15.42625" gradientUnits="userSpaceOnUse" id="color-3"><stop offset="0" stop-color="#ffffff"></stop><stop offset="1" stop-color="#262626"
+  stop-opacity="0.8"></stop></linearGradient><linearGradient x1="62.133" y1="12.797" x2="-0.759" y2="43.732" gradientUnits="userSpaceOnUse" id="color-4"><stop offset="0" stop-color="#ffffff"></stop><stop
+  offset="1" stop-color="#262626" stop-opacity="0.8"></stop></linearGradient></defs><g fill="none" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter"
+  stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal"><g
+  transform="scale(5.33333,5.33333)"><path d="M16.929,31.071l-9.9,9.9l12.071,2.405z" fill="url(#color-1)"></path><path d="M28.9,4.624c0,0 -2.462,-0.624 -4.9,-0.624c-11.046,0 -20,8.954 -20,20c0,5.523
+  2.239,10.523 5.858,14.142l4.243,-4.243c-2.892,-2.892 -4.524,-7.042 -4.005,-11.559c0.694,-6.038 5.375,-11.019 11.354,-12.108c3.136,-0.571 6.1,-0.057 8.648,1.18z" fill="url(#color-2)"></path><path
+  d="M31.071,16.929l9.9,-9.9l-12.071,-2.405z" fill="url(#color-3)"></path><path d="M19.1,43.376c0,0 2.462,0.624 4.9,0.624c11.046,0 20,-8.954 20,-20c0,-5.523 -2.239,-10.523
+  -5.858,-14.142l-4.243,4.243c2.892,2.892 4.524,7.042 4.005,11.559c-0.694,6.038 -5.375,11.019 -11.354,12.108c-3.136,0.571 -6.1,0.057 -8.648,-1.18z" fill="url(#color-4)"></path></g></g></svg>
