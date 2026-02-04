@@ -4,11 +4,18 @@
 
 namespace Grab {
 
+// Result returned by OnExit with the NPC's before/after position for undo recording
+struct NPCMoveResult {
+    RE::FormID formId;
+    RE::NiPoint3 initialPosition;
+    RE::NiPoint3 finalPosition;
+};
+
 // RemoteNPCPlacementManager: Handles NPC-specific placement logic for remote grab
 //
 // DESIGN:
 // - Called by RemoteGrabController when the selected object is an NPC
-// - Provides simplified NPC movement without rotation, undo/redo, or persistence
+// - Provides simplified NPC movement without rotation or persistence
 // - NPCs are moved by directly setting their position (no collision manipulation needed)
 // - Movement is temporary - NPC will resume their AI packages after edit mode exits
 //
@@ -18,7 +25,7 @@ namespace Grab {
 // Differences from regular object placement:
 // - No rotation support (NPCs handle their own facing)
 // - No Disable/Enable cycle (NPCs don't need collision sync like statics)
-// - No action recording for undo/redo (changes are not persisted)
+// - No persistence (NPC changes are not exported to BOS INI files)
 // - No multi-selection (one NPC at a time)
 //
 class RemoteNPCPlacementManager
@@ -34,7 +41,9 @@ public:
     bool OnEnter(RE::Actor* npc, float initialDistance);
 
     // Called when exiting remote placement
-    void OnExit();
+    // Returns the NPC's initial and final position for undo recording
+    // Returns nullopt if the NPC became invalid during placement
+    std::optional<NPCMoveResult> OnExit();
 
     // Called each frame to update NPC position
     // centerPos: The calculated target position from RemoteGrabController

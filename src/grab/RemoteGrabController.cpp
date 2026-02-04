@@ -11,6 +11,7 @@
 #include "../util/RotationMath.h"
 #include "../visuals/RaycastRenderer.h"
 #include "../visuals/ObjectHighlighter.h"
+#include "../util/ActionLogger.h"
 #include "../log.h"
 #include <cmath>
 #include <limits>
@@ -431,6 +432,14 @@ void RemoteGrabController::OnEnter()
 
     spdlog::info("RemoteGrabController: OnEnter with {} objects, distance={:.1f}",
         m_objects.size(), m_distance);
+
+    // Log initial transforms of all grabbed objects
+    Util::ActionLogger::LogHeader("RemoteGrab START", m_objects.size());
+    for (int i = 0; i < static_cast<int>(m_objects.size()); ++i) {
+        const auto& obj = m_objects[i];
+        Util::ActionLogger::LogSnapshot(i + 1, static_cast<int>(m_objects.size()), obj.formId,
+            obj.initialTransform.translate, obj.initialEulerAngles, obj.initialTransform.scale);
+    }
 }
 
 void RemoteGrabController::OnExit()
@@ -446,8 +455,30 @@ void RemoteGrabController::OnExit()
 
     if (m_isNPCMode) {
         // NPC mode - delegate exit to NPC placement manager
-        // No undo recording or position finalization for NPCs
-        RemoteNPCPlacementManager::GetSingleton()->OnExit();
+        auto npcResult = RemoteNPCPlacementManager::GetSingleton()->OnExit();
+
+        // Record undo action if the NPC moved a meaningful distance
+        if (npcResult) {
+            float dx = npcResult->finalPosition.x - npcResult->initialPosition.x;
+            float dy = npcResult->finalPosition.y - npcResult->initialPosition.y;
+            float dz = npcResult->finalPosition.z - npcResult->initialPosition.z;
+            float distSq = dx * dx + dy * dy + dz * dz;
+
+            if (distSq >= 1.0f) {
+                RE::NiTransform initial;
+                initial.translate = npcResult->initialPosition;
+
+                RE::NiTransform changed;
+                changed.translate = npcResult->finalPosition;
+
+                // NPCs handle their own rotation — store zero angles
+                RE::NiPoint3 zeroAngles{0.0f, 0.0f, 0.0f};
+
+                auto* history = Actions::ActionHistoryRepository::GetSingleton();
+                history->AddTransform(npcResult->formId, initial, changed, zeroAngles, zeroAngles);
+                spdlog::info("RemoteGrabController: Recorded NPC transform action for {:08X}", npcResult->formId);
+            }
+        }
     } else {
         // Standard object mode
 
@@ -464,6 +495,19 @@ void RemoteGrabController::OnExit()
 
         // Restore collisions that were disabled during the grab
         RestoreCollisionsOnExit();
+
+        // Log before/after transforms of all grabbed objects
+        Util::ActionLogger::LogHeader("RemoteGrab END", m_objects.size());
+        for (int i = 0; i < static_cast<int>(m_objects.size()); ++i) {
+            const auto& obj = m_objects[i];
+            if (!obj.ref || !obj.ref->Get3D()) continue;
+            RE::NiPoint3 currentPos = obj.ref->Get3D()->world.translate;
+            RE::NiPoint3 currentEuler = obj.ref->GetAngle();
+            float currentScale = obj.ref->Get3D()->world.scale;
+            Util::ActionLogger::LogChange(i + 1, static_cast<int>(m_objects.size()), obj.formId,
+                obj.initialTransform.translate, obj.initialEulerAngles, obj.initialTransform.scale,
+                currentPos, currentEuler, currentScale);
+        }
 
         // Record actions for undo
         RecordActions();

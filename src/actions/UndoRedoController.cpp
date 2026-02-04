@@ -2,40 +2,12 @@
 #include "ActionHistoryRepository.h"
 #include "../FrameCallbackDispatcher.h"
 #include "../selection/SelectionState.h"
+#include "../util/ActionLogger.h"
 #include "../util/NotificationManager.h"
 #include "../util/PositioningUtil.h"
 #include "../persistence/ChangedObjectRegistry.h"
 #include "../log.h"
 #include <cmath>
-
-namespace {
-    // Get a display name for a form (editor ID or fallback to form ID hex)
-    std::string GetFormDisplayName(RE::FormID formId) {
-        auto* form = RE::TESForm::LookupByID(formId);
-        if (!form) {
-            return fmt::format("{:08X}", formId);
-        }
-
-        // Try to get editor ID
-        const char* editorId = form->GetFormEditorID();
-        if (editorId && editorId[0] != '\0') {
-            return std::string(editorId);
-        }
-
-        // Try to get the base object's editor ID if this is a reference
-        if (auto* ref = form->As<RE::TESObjectREFR>()) {
-            if (auto* baseObj = ref->GetBaseObject()) {
-                editorId = baseObj->GetFormEditorID();
-                if (editorId && editorId[0] != '\0') {
-                    return std::string(editorId);
-                }
-            }
-        }
-
-        // Fallback to hex form ID
-        return fmt::format("{:08X}", formId);
-    }
-} // anonymous namespace
 
 namespace Actions {
 
@@ -249,9 +221,14 @@ void UndoRedoController::PerformUndo()
                 // Use Euler angles directly for lossless undo
                 ApplyTransformWithEuler(act.formId, act.initialTransform, act.initialEulerAngles);
 
-                std::string name = GetFormDisplayName(act.formId);
+                std::string name = Util::ActionLogger::GetDisplayName(act.formId);
                 notif->Show("Undo: Move {}", name);
-                spdlog::info("UndoRedoController: Undid transform for {} ({:08X})", name, act.formId);
+
+                // Detailed before/after logging
+                Util::ActionLogger::LogHeader("Undo: Transform", 1);
+                Util::ActionLogger::LogChange(1, 1, act.formId,
+                    act.changedTransform.translate, act.changedEulerAngles, act.changedTransform.scale,
+                    act.initialTransform.translate, act.initialEulerAngles, act.initialTransform.scale);
             } else if constexpr (std::is_same_v<T, MultiTransformAction>) {
                 // Undo all transforms in the group
                 for (const auto& st : act.transforms) {
@@ -260,7 +237,15 @@ void UndoRedoController::PerformUndo()
                 }
 
                 notif->Show("Undo: Move {} objects", act.transforms.size());
-                spdlog::info("UndoRedoController: Undid multi-transform for {} objects", act.transforms.size());
+
+                // Detailed before/after logging for each object
+                Util::ActionLogger::LogHeader("Undo: MultiTransform", act.transforms.size());
+                for (int i = 0; i < static_cast<int>(act.transforms.size()); ++i) {
+                    const auto& st = act.transforms[i];
+                    Util::ActionLogger::LogChange(i + 1, static_cast<int>(act.transforms.size()), st.formId,
+                        st.changedTransform.translate, st.changedEulerAngles, st.changedTransform.scale,
+                        st.initialTransform.translate, st.initialEulerAngles, st.initialTransform.scale);
+                }
             } else if constexpr (std::is_same_v<T, SelectionAction>) {
                 // Always apply selection for state consistency
                 ApplySelection(act.previousSelection);
@@ -280,7 +265,13 @@ void UndoRedoController::PerformUndo()
                 }
 
                 notif->Show("Undo: Delete {} objects", act.deletedObjects.size());
-                spdlog::info("UndoRedoController: Undid deletion of {} objects (re-enabled)", act.deletedObjects.size());
+                Util::ActionLogger::LogHeader("Undo: Delete", act.deletedObjects.size());
+                for (int i = 0; i < static_cast<int>(act.deletedObjects.size()); ++i) {
+                    const auto& del = act.deletedObjects[i];
+                    std::string name = Util::ActionLogger::GetDisplayName(del.formId);
+                    spdlog::info("  [{}/{}] {} ({:08X}) re-enabled", i + 1,
+                        static_cast<int>(act.deletedObjects.size()), name, del.formId);
+                }
             } else if constexpr (std::is_same_v<T, CopyAction>) {
                 // Undo copy = Disable the created copies
                 for (const auto& copy : act.copiedObjects) {
@@ -288,7 +279,13 @@ void UndoRedoController::PerformUndo()
                 }
 
                 notif->Show("Undo: Duplicate {} objects", act.copiedObjects.size());
-                spdlog::info("UndoRedoController: Undid copy of {} objects (disabled)", act.copiedObjects.size());
+                Util::ActionLogger::LogHeader("Undo: Copy", act.copiedObjects.size());
+                for (int i = 0; i < static_cast<int>(act.copiedObjects.size()); ++i) {
+                    const auto& copy = act.copiedObjects[i];
+                    std::string name = Util::ActionLogger::GetDisplayName(copy.createdFormId);
+                    spdlog::info("  [{}/{}] {} ({:08X}) disabled", i + 1,
+                        static_cast<int>(act.copiedObjects.size()), name, copy.createdFormId);
+                }
             }
         }, *action);
 
@@ -331,9 +328,14 @@ void UndoRedoController::PerformRedo()
             // Use Euler angles directly for lossless redo
             ApplyTransformWithEuler(act.formId, act.changedTransform, act.changedEulerAngles);
 
-            std::string name = GetFormDisplayName(act.formId);
+            std::string name = Util::ActionLogger::GetDisplayName(act.formId);
             notif->Show("Redo: Move {}", name);
-            spdlog::info("UndoRedoController: Redid transform for {} ({:08X})", name, act.formId);
+
+            // Detailed before/after logging
+            Util::ActionLogger::LogHeader("Redo: Transform", 1);
+            Util::ActionLogger::LogChange(1, 1, act.formId,
+                act.initialTransform.translate, act.initialEulerAngles, act.initialTransform.scale,
+                act.changedTransform.translate, act.changedEulerAngles, act.changedTransform.scale);
         } else if constexpr (std::is_same_v<T, MultiTransformAction>) {
             // Redo all transforms in the group
             for (const auto& st : act.transforms) {
@@ -342,7 +344,15 @@ void UndoRedoController::PerformRedo()
             }
 
             notif->Show("Redo: Move {} objects", act.transforms.size());
-            spdlog::info("UndoRedoController: Redid multi-transform for {} objects", act.transforms.size());
+
+            // Detailed before/after logging for each object
+            Util::ActionLogger::LogHeader("Redo: MultiTransform", act.transforms.size());
+            for (int i = 0; i < static_cast<int>(act.transforms.size()); ++i) {
+                const auto& st = act.transforms[i];
+                Util::ActionLogger::LogChange(i + 1, static_cast<int>(act.transforms.size()), st.formId,
+                    st.initialTransform.translate, st.initialEulerAngles, st.initialTransform.scale,
+                    st.changedTransform.translate, st.changedEulerAngles, st.changedTransform.scale);
+            }
         } else if constexpr (std::is_same_v<T, SelectionAction>) {
             ApplySelection(act.newSelection);
 
@@ -356,7 +366,13 @@ void UndoRedoController::PerformRedo()
             }
 
             notif->Show("Redo: Delete {} objects", act.deletedObjects.size());
-            spdlog::info("UndoRedoController: Redid deletion of {} objects (disabled)", act.deletedObjects.size());
+            Util::ActionLogger::LogHeader("Redo: Delete", act.deletedObjects.size());
+            for (int i = 0; i < static_cast<int>(act.deletedObjects.size()); ++i) {
+                const auto& del = act.deletedObjects[i];
+                std::string name = Util::ActionLogger::GetDisplayName(del.formId);
+                spdlog::info("  [{}/{}] {} ({:08X}) disabled", i + 1,
+                    static_cast<int>(act.deletedObjects.size()), name, del.formId);
+            }
         } else if constexpr (std::is_same_v<T, CopyAction>) {
             // Redo copy = Enable the copies again
             for (const auto& copy : act.copiedObjects) {
@@ -364,7 +380,13 @@ void UndoRedoController::PerformRedo()
             }
 
             notif->Show("Redo: Duplicate {} objects", act.copiedObjects.size());
-            spdlog::info("UndoRedoController: Redid copy of {} objects (re-enabled)", act.copiedObjects.size());
+            Util::ActionLogger::LogHeader("Redo: Copy", act.copiedObjects.size());
+            for (int i = 0; i < static_cast<int>(act.copiedObjects.size()); ++i) {
+                const auto& copy = act.copiedObjects[i];
+                std::string name = Util::ActionLogger::GetDisplayName(copy.createdFormId);
+                spdlog::info("  [{}/{}] {} ({:08X}) re-enabled", i + 1,
+                    static_cast<int>(act.copiedObjects.size()), name, copy.createdFormId);
+            }
         }
     }, *action);
 
@@ -431,6 +453,16 @@ void UndoRedoController::ApplyTransformWithEuler(RE::FormID formId, const RE::Ni
         spdlog::warn("UndoRedoController: Form {:08X} is not a reference", formId);
         return;
     }
+
+    // NPC-aware path: Actors use SetPosition which updates the character controller.
+    // No Disable/Enable cycle — that would reset AI state and break quest scripts.
+    if (auto* actor = ref->As<RE::Actor>()) {
+        actor->SetPosition(transform.translate, true);
+        spdlog::trace("UndoRedoController: Applied NPC position to {:08X}", formId);
+        return;
+    }
+
+    // Standard object path below
 
     // Use the provided Euler angles directly (LOSSLESS - no Matrix→Euler conversion)
     PositioningUtil::SetPositionNative(ref, transform.translate);

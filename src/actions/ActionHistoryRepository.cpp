@@ -2,6 +2,7 @@
 #include "../log.h"
 #include "../persistence/ChangedObjectRegistry.h"
 #include "../persistence/FormKeyUtil.h"
+#include <RE/A/Actor.h>
 
 namespace Actions {
 
@@ -68,6 +69,12 @@ namespace {
         return "Unknown";
     }
 
+    // Check if a form ID refers to an Actor (NPC) — actors are excluded from persistence
+    bool IsActor(RE::FormID formId) {
+        auto* form = RE::TESForm::LookupByID(formId);
+        return form && form->As<RE::Actor>() != nullptr;
+    }
+
     // Helper to register changed objects from an action with the ChangedObjectRegistry
     // Only TransformAction, MultiTransformAction, and DeleteAction modify object state
     // SelectionAction is skipped - it doesn't change the object itself
@@ -78,9 +85,11 @@ namespace {
             using T = std::decay_t<decltype(act)>;
 
             if constexpr (std::is_same_v<T, TransformAction>) {
-                // Single transform - register the one object
-                if (auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(act.formId)) {
-                    registry->RegisterIfNew(ref, act.initialTransform, actionId);
+                // Single transform - register the one object (skip actors)
+                if (!IsActor(act.formId)) {
+                    if (auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(act.formId)) {
+                        registry->RegisterIfNew(ref, act.initialTransform, actionId);
+                    }
                 }
             } else if constexpr (std::is_same_v<T, MultiTransformAction>) {
                 // Multi-transform - register each object
@@ -111,11 +120,14 @@ namespace {
             using T = std::decay_t<decltype(act)>;
 
             if constexpr (std::is_same_v<T, TransformAction>) {
-                if (auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(act.formId)) {
-                    std::string formKey = Persistence::FormKeyUtil::BuildFormKey(ref);
-                    if (!formKey.empty()) {
-                        const auto& transform = useChangedTransform ? act.changedTransform : act.initialTransform;
-                        registry->UpdateCurrentTransform(formKey, transform, GetLocationName(ref));
+                // Skip actors — NPC moves are not persisted
+                if (!IsActor(act.formId)) {
+                    if (auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(act.formId)) {
+                        std::string formKey = Persistence::FormKeyUtil::BuildFormKey(ref);
+                        if (!formKey.empty()) {
+                            const auto& transform = useChangedTransform ? act.changedTransform : act.initialTransform;
+                            registry->UpdateCurrentTransform(formKey, transform, GetLocationName(ref));
+                        }
                     }
                 }
             } else if constexpr (std::is_same_v<T, MultiTransformAction>) {
@@ -184,15 +196,17 @@ Util::ActionId ActionHistoryRepository::AddTransform(RE::FormID formId,
     TransformAction action(formId, initial, changed, initialEuler, changedEuler);
     Util::ActionId id = action.actionId;
 
-    // Register with persistence before storing
-    if (auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(formId)) {
-        auto* registry = Persistence::ChangedObjectRegistry::GetSingleton();
-        registry->RegisterIfNew(ref, initial, id);
+    // Register with persistence before storing (skip actors — NPC moves are not persisted)
+    if (!IsActor(formId)) {
+        if (auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(formId)) {
+            auto* registry = Persistence::ChangedObjectRegistry::GetSingleton();
+            registry->RegisterIfNew(ref, initial, id);
 
-        // Update current transform for BOS export
-        std::string formKey = Persistence::FormKeyUtil::BuildFormKey(ref);
-        if (!formKey.empty()) {
-            registry->UpdateCurrentTransform(formKey, changed, GetLocationName(ref));
+            // Update current transform for BOS export
+            std::string formKey = Persistence::FormKeyUtil::BuildFormKey(ref);
+            if (!formKey.empty()) {
+                registry->UpdateCurrentTransform(formKey, changed, GetLocationName(ref));
+            }
         }
     }
 

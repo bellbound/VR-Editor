@@ -52,20 +52,27 @@ bool RemoteNPCPlacementManager::OnEnter(RE::Actor* npc, float initialDistance)
     return true;
 }
 
-void RemoteNPCPlacementManager::OnExit()
+std::optional<NPCMoveResult> RemoteNPCPlacementManager::OnExit()
 {
     if (!m_isActive) {
-        return;
+        return std::nullopt;
     }
 
-    spdlog::info("RemoteNPCPlacementManager::OnExit: Ended NPC placement for {:08X}",
-        m_npc ? m_npc->GetFormID() : 0);
+    std::optional<NPCMoveResult> result;
 
-    // Note: We don't record this action for undo/redo since NPC movement is temporary
-    // The NPC will resume their normal AI behavior after edit mode
+    if (m_npc) {
+        result = NPCMoveResult{
+            m_npc->GetFormID(),
+            m_initialPosition,
+            m_npc->GetPosition()
+        };
+
+        spdlog::info("RemoteNPCPlacementManager::OnExit: Ended NPC placement for {:08X}", m_npc->GetFormID());
+    }
 
     m_isActive = false;
     m_npc = nullptr;
+    return result;
 }
 
 void RemoteNPCPlacementManager::UpdatePosition(const RE::NiPoint3& centerPos)
