@@ -9,6 +9,7 @@
 #include "FrameCallbackDispatcher.h"
 #include "interfaces/ThreeDUIInterface001.h"
 #include "log.h"
+#include "util/SelectionLogger.h"
 
 EditModeStateManager* EditModeStateManager::GetSingleton()
 {
@@ -174,6 +175,7 @@ bool EditModeStateManager::OnTriggerPressed(bool isLeft, bool isReleased, vr::EV
                                 }
                             }
                         }
+                        SelectionLogger::LogSelectedObjects(hoveredObjects);
                     } else {
                         spdlog::trace("EditModeStateManager: Sphere quick click but no objects in sphere");
                     }
