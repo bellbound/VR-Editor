@@ -27,19 +27,29 @@ void EditModeManager::Initialize()
         return;
     }
 
-    // Read and store the original HIGGS settings
-    if (g_higgsInterface->GetSettingDouble("EnableTrigger", m_originalEnableTrigger)) {
-        spdlog::info("EditModeManager: Original EnableTrigger = {}", m_originalEnableTrigger);
-    } else {
-        spdlog::warn("EditModeManager: Failed to read EnableTrigger, assuming 1 (enabled)");
-        m_originalEnableTrigger = 1.0;
+    // Check if HIGGS version supports Get/SetSettingDouble (added in v1.10.4, build 1100400)
+    auto higgsBuild = g_higgsInterface->GetBuildNumber();
+    m_higgsSettingsAvailable = higgsBuild >= kHiggsMinBuildSettings;
+    if (!m_higgsSettingsAvailable) {
+        spdlog::warn("EditModeManager: HIGGS build {} is too old for Get/SetSettingDouble (need >= {}, v1.10.4). "
+            "Edit mode will not be able to disable HIGGS grab/trigger.", higgsBuild, kHiggsMinBuildSettings);
     }
 
-    if (g_higgsInterface->GetSettingDouble("EnableGrip", m_originalEnableGrip)) {
-        spdlog::info("EditModeManager: Original EnableGrip = {}", m_originalEnableGrip);
-    } else {
-        spdlog::warn("EditModeManager: Failed to read EnableGrip, assuming 1 (enabled)");
-        m_originalEnableGrip = 1.0;
+    // Read and store the original HIGGS settings
+    if (m_higgsSettingsAvailable) {
+        if (g_higgsInterface->GetSettingDouble("EnableTrigger", m_originalEnableTrigger)) {
+            spdlog::info("EditModeManager: Original EnableTrigger = {}", m_originalEnableTrigger);
+        } else {
+            spdlog::warn("EditModeManager: Failed to read EnableTrigger, assuming 1 (enabled)");
+            m_originalEnableTrigger = 1.0;
+        }
+
+        if (g_higgsInterface->GetSettingDouble("EnableGrip", m_originalEnableGrip)) {
+            spdlog::info("EditModeManager: Original EnableGrip = {}", m_originalEnableGrip);
+        } else {
+            spdlog::warn("EditModeManager: Failed to read EnableGrip, assuming 1 (enabled)");
+            m_originalEnableGrip = 1.0;
+        }
     }
 
     m_initialized = true;
@@ -87,8 +97,8 @@ void EditModeManager::Exit()
 
 void EditModeManager::DisableHiggs()
 {
-    if (!m_initialized || !g_higgsInterface) {
-        spdlog::warn("EditModeManager: Cannot disable HIGGS - not initialized");
+    if (!m_initialized || !g_higgsInterface || !m_higgsSettingsAvailable) {
+        spdlog::warn("EditModeManager: Cannot disable HIGGS - not initialized or HIGGS too old");
         return;
     }
 
@@ -115,8 +125,8 @@ void EditModeManager::DisableHiggs()
 
 void EditModeManager::RestoreHiggs()
 {
-    if (!g_higgsInterface) {
-        spdlog::warn("EditModeManager: Cannot restore HIGGS - interface not available");
+    if (!g_higgsInterface || !m_higgsSettingsAvailable) {
+        spdlog::warn("EditModeManager: Cannot restore HIGGS - interface not available or HIGGS too old");
         return;
     }
 
