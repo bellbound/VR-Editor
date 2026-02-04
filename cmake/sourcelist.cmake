@@ -16,6 +16,7 @@ set(sources ${sources}
     src/util/NotificationManager.cpp
     src/util/PositioningUtil.cpp
     src/util/Raycast.cpp
+    src/util/SelectionLogger.cpp
     src/util/TouchingObjectsFinder.cpp
     src/util/RotationMath.cpp
     src/util/SkyrimNetInterface.cpp

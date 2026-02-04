@@ -128,7 +128,7 @@ public:
         m_itemCountText = m_api->CreateText(textConfig);
         if (m_itemCountText) {
             root->AddChild(m_itemCountText);
-            m_itemCountText->SetLocalPosition(0, 0, -10.0f);  // Position below tool row
+            m_itemCountText->SetLocalPosition(0, 0, -8.0f);  // Position below tool row
         }
 
         spdlog::info("GalleryMenu::SetupMenu - Setup complete");
