@@ -760,9 +760,9 @@ void RemoteGrabController::UpdateAllObjects(const RE::NiPoint3& centerPos, const
     RE::NiPoint3 totalLeftHandEuler = m_rotationTransformer.GetAccumulatedEulerDelta();
 
     if (m_rotationTransformer.IsActive()) {
-        // Add current gesture's rotation on top of accumulated
+        // Right-multiply current gesture's local-frame delta onto accumulated
         RE::NiMatrix3 currentDelta = m_rotationTransformer.GetRotationDelta();
-        totalLeftHandRotation = PositioningUtil::MultiplyMatrices(currentDelta, totalLeftHandRotation);
+        totalLeftHandRotation = PositioningUtil::MultiplyMatrices(totalLeftHandRotation, currentDelta);
 
         RE::NiPoint3 currentEuler = m_rotationTransformer.GetEulerDelta();
         totalLeftHandEuler.x += currentEuler.x;
@@ -815,14 +815,14 @@ void RemoteGrabController::UpdateAllObjects(const RE::NiPoint3& centerPos, const
                 displayCenter.z + rotatedOffset.z
             };
 
-            // Rotate object orientation
+            // Right-multiply: applies rotation in the object's local frame
+            // so controller yaw/pitch/roll map 1:1 to object yaw/pitch/roll
             computed.transform.rotate = PositioningUtil::MultiplyMatrices(
-                totalLeftHandRotation, computed.transform.rotate);
+                computed.transform.rotate, totalLeftHandRotation);
 
-            // Add euler angle deltas
-            computed.eulerAngles.x += totalLeftHandEuler.x;
-            computed.eulerAngles.y += totalLeftHandEuler.y;
-            computed.eulerAngles.z += totalLeftHandEuler.z;
+            // Extract Euler angles from the final rotation matrix
+            // (Euler angles don't compose additively — must derive from resulting matrix)
+            computed.eulerAngles = PositioningUtil::MatrixToEulerAngles(computed.transform.rotate);
         }
 
         // Apply scale multiplier on top of initial scale
@@ -907,12 +907,11 @@ void RemoteGrabController::RecordActions()
                 smoothed.translate.z + rotatedOffset.z
             };
 
-            // Rotate object orientation
+            // Right-multiply: applies rotation in the object's local frame
             computed.transform.rotate = PositioningUtil::MultiplyMatrices(
-                totalLeftHandRotation, computed.transform.rotate);
-            computed.eulerAngles.x += totalLeftHandEuler.x;
-            computed.eulerAngles.y += totalLeftHandEuler.y;
-            computed.eulerAngles.z += totalLeftHandEuler.z;
+                computed.transform.rotate, totalLeftHandRotation);
+            // Extract Euler angles from the final rotation matrix
+            computed.eulerAngles = PositioningUtil::MatrixToEulerAngles(computed.transform.rotate);
         }
 
         // Apply scale multiplier on top of initial scale
@@ -1002,12 +1001,11 @@ void RemoteGrabController::FinalizePositions()
                 smoothed.translate.z + rotatedOffset.z
             };
 
-            // Rotate object orientation
+            // Right-multiply: applies rotation in the object's local frame
             computed.transform.rotate = PositioningUtil::MultiplyMatrices(
-                totalLeftHandRotation, computed.transform.rotate);
-            computed.eulerAngles.x += totalLeftHandEuler.x;
-            computed.eulerAngles.y += totalLeftHandEuler.y;
-            computed.eulerAngles.z += totalLeftHandEuler.z;
+                computed.transform.rotate, totalLeftHandRotation);
+            // Extract Euler angles from the final rotation matrix
+            computed.eulerAngles = PositioningUtil::MatrixToEulerAngles(computed.transform.rotate);
         }
 
         // Apply scale multiplier on top of initial scale
