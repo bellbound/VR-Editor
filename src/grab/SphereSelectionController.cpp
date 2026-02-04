@@ -357,14 +357,18 @@ bool SphereSelectionController::IsSelectable(RE::TESObjectREFR* ref) const
         case RE::FormType::Flora:
         case RE::FormType::Misc:
         case RE::FormType::Weapon:
+        case RE::FormType::Grass:
         case RE::FormType::Armor:
         case RE::FormType::Book:
+        case RE::FormType::IdleMarker:
         case RE::FormType::Ingredient:
-        case RE::FormType::KeyMaster:
+        case RE::FormType::AnimatedObject:
         case RE::FormType::AlchemyItem:
         case RE::FormType::Ammo:
         case RE::FormType::Scroll:
         case RE::FormType::SoulGem:
+        case RE::FormType::ArtObject:
+        case RE::FormType::VolumetricLighting:
             return true;
         default:
             return false;
