@@ -104,3 +104,8 @@ namespace HiggsPluginAPI {
 }
 
 extern HiggsPluginAPI::IHiggsInterface001* g_higgsInterface;
+
+// HIGGS v1.10.4 added GetSettingDouble/SetSettingDouble (vtable slots 38-39)
+// Older versions will crash if these are called (reads past end of vtable)
+// Build number format: MAJOR * 1000000 + MINOR * 10000 + PATCH * 100 + BETA
+inline constexpr unsigned int kHiggsMinBuildSettings = 1100400;

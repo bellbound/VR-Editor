@@ -47,6 +47,9 @@ private:
     double m_originalEnableTrigger = 1.0;  // 1 = enabled, 0 = disabled
     double m_originalEnableGrip = 1.0;     // 1 = enabled, 0 = disabled
 
+    // Whether the installed HIGGS version supports Get/SetSettingDouble (v1.10.4+)
+    bool m_higgsSettingsAvailable = false;
+
     // Track if we modified each setting (to avoid restoring settings we didn't change)
     bool m_triggerDisabledByUs = false;
     bool m_gripDisabledByUs = false;
