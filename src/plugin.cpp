@@ -30,7 +30,6 @@
 #include "config/ConfigOptions.h"
 #include "api/VREditorPapyrusAPI.h"
 #include "api/VRBuilderNativePapyrusAPI.h"
-#include "test/SaveFileTestManager.h"
 
 // =============================================================================
 // Cell Event Sink - handles cell attach/detach events
@@ -284,9 +283,6 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 			g_3DUIMissingNotificationShown = true;
 		}
 
-		// TEST: Spawn 100 temporary + 100 non-temporary refs to test save behavior
-		//Test::SaveFileTestManager::GetSingleton()->Initialize();
-		//Test::SaveFileTestManager::GetSingleton()->StartSpawning();
 		break;
 
 	case SKSE::MessagingInterface::kNewGame:

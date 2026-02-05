@@ -57,7 +57,7 @@ set(headers ${headers}
     src/gallery/GalleryItem.h
     src/gallery/GalleryManager.h
     src/gallery/GalleryPlacementUtil.h
-    src/test/SaveFileTestManager.h
+    src/test/.h
     src/config/ConfigStorage.h
     src/config/ConfigStoragePapyrusAdapter.h
     src/config/ConfigOptions.h

@@ -7,7 +7,6 @@
 #include "../config/ConfigStorage.h"
 #include "../config/ConfigOptions.h"
 #include "../gallery/GalleryManager.h"
-#include "../test/SaveFileTestManager.h"
 #include "../log.h"
 #include <algorithm>
 #include <chrono>
@@ -104,13 +103,7 @@ void SaveGameDataManager::OnSave(SKSE::SerializationInterface* intfc)
             return a.second.saveData.timestamp > b.second.saveData.timestamp;
         });
 
-    // Enforce limit - only save newest entries
-    // Use (std::min) to avoid conflict with Windows min macro
-    size_t entriesToSave = (std::min)(sortedEntries.size(), CHANGE_TRACKING_LIMIT);
-    if (sortedEntries.size() > CHANGE_TRACKING_LIMIT) {
-        spdlog::warn("SaveGameDataManager: Discarding {} oldest entries (limit: {})",
-            sortedEntries.size() - CHANGE_TRACKING_LIMIT, CHANGE_TRACKING_LIMIT);
-    }
+
 
     // Write entry count
     uint32_t count = static_cast<uint32_t>(entriesToSave);
@@ -219,8 +212,6 @@ void SaveGameDataManager::OnSave(SKSE::SerializationInterface* intfc)
 
     spdlog::info("SaveGameDataManager: Saved {} gallery items", galleryWritten);
 
-    // Save test manager data - DISABLED: testing if this causes crash
-    // Test::SaveFileTestManager::GetSingleton()->SaveData(intfc);
 
     // Respawn created objects in player's current cell after save completes
     // This prevents the "objects disappear" visual glitch when saving
@@ -243,11 +234,6 @@ void SaveGameDataManager::OnLoad(SKSE::SerializationInterface* intfc)
     std::vector<Gallery::GalleryItem> galleryItems;
 
     while (intfc->GetNextRecordInfo(type, version, length)) {
-        // === Handle Test Manager Record ===
-        if (type == Test::SaveFileTestManager::kRecordType) {
-            Test::SaveFileTestManager::GetSingleton()->LoadData(intfc, type, version, length);
-            continue;
-        }
 
         // === Handle Gallery Record ===
         if (type == kGalleryRecordType) {
@@ -407,9 +393,6 @@ void SaveGameDataManager::OnRevert(SKSE::SerializationInterface* /*intfc*/)
 
     auto* gallery = Gallery::GalleryManager::GetSingleton();
     gallery->Clear();
-
-    // Revert test manager data
-    Test::SaveFileTestManager::GetSingleton()->RevertData();
 
     spdlog::info("SaveGameDataManager: Revert complete");
 }

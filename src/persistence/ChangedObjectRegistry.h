@@ -12,10 +12,6 @@
 
 namespace Persistence {
 
-// Maximum number of changed objects to persist in save games
-// Oldest entries are discarded first when this limit is exceeded
-constexpr size_t CHANGE_TRACKING_LIMIT = 2000;
-
 // Data that gets serialized to save game
 // This represents the original state of an object before any modifications
 struct ChangedObjectSaveGameData {

@@ -57,7 +57,6 @@ set(sources ${sources}
     src/persistence/CreatedObjectTracker.cpp
     src/gallery/GalleryManager.cpp
     src/gallery/GalleryPlacementUtil.cpp
-    src/test/SaveFileTestManager.cpp
     src/config/ConfigStorage.cpp
     src/config/ConfigOptions.cpp
     external/PapyrusVRTypes.cpp
