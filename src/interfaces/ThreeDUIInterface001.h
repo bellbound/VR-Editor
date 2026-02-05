@@ -8,7 +8,7 @@
 //
 // Quick Start:
 //   1. Get interface after PostPostLoad: auto* api = P3DUI::GetInterface001();
-//   2. Create a root: auto* root = api->CreateRoot(RootConfig::Default("myMenu", "MyModName"));
+//   2. Create a root: auto* root = api->GetOrCreateRoot(RootConfig::Default("myMenu", "MyModName"));
 //   3. Add containers: auto* wheel = api->CreateScrollWheel(ScrollWheelConfig::Default("items"));
 //   4. Add items: auto* sword = api->CreateElement(ElementConfig::Default("sword"));
 //   5. Add to hierarchy: wheel->AddChild(sword); root->AddChild(wheel);
@@ -589,11 +589,11 @@ struct Interface001 {
     virtual uint32_t GetBuildNumber() = 0;
 
     // === Root Management ===
-    // Creates a new root container. Returns nullptr on failure.
-    // Logs error if ID is already registered.
-    virtual Root* CreateRoot(const RootConfig& config) = 0;
-    // Get an existing root by ID. Returns nullptr if not found.
-    virtual Root* GetRoot(const char* id) = 0;
+    // Gets an existing root by ID, or creates it if it doesn't exist.
+    // Returns nullptr only on actual failure (missing ID/modId, or internal error).
+    // Safe to call multiple times with the same ID — returns the existing root.
+    // Config is only used on first creation; subsequent calls ignore config differences.
+    virtual Root* GetOrCreateRoot(const RootConfig& config) = 0;
 
     // === Factory Methods ===
     // Create nodes. Caller must add to a container via AddChild().

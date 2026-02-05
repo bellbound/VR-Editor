@@ -390,10 +390,10 @@ void SphereSelectionController::CreateSphereVisual()
         return;
     }
 
-    // Create root for sphere - non-interactive, world-positioned
+    // Get or create root for sphere - non-interactive, world-positioned
     P3DUI::RootConfig rootCfg = P3DUI::RootConfig::Default("sphere_select", "VRBuildMode");
     rootCfg.interactive = false;
-    m_sphereRoot = api->CreateRoot(rootCfg);
+    m_sphereRoot = api->GetOrCreateRoot(rootCfg);
 
     if (!m_sphereRoot) {
         spdlog::error("SphereSelectionController: Failed to create sphere root");
@@ -443,7 +443,7 @@ void SphereSelectionController::UpdateSphereVisual()
 void SphereSelectionController::DestroySphereVisual()
 {
     // Just hide the sphere - don't null pointers so we can reuse on re-entry
-    // 3DUI manages the memory, and CreateRoot with same ID returns the existing root
+    // GetOrCreateRoot returns the existing root when called again
     if (m_sphereRoot) {
         m_sphereRoot->SetVisible(false);
         spdlog::trace("SphereSelectionController: Hidden sphere visual");

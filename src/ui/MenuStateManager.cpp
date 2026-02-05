@@ -26,7 +26,7 @@ bool MenuStateManager::EnsureSelectionMenuReady()
             return false;
         }
 
-        // Create root if needed
+        // Get or create root
         if (!m_selectionRoot) {
             P3DUI::RootConfig rootConfig = P3DUI::RootConfig::Default("selection_menu_root", "InGamePatcherVR");
             rootConfig.interactive = true;
@@ -34,9 +34,9 @@ bool MenuStateManager::EnsureSelectionMenuReady()
             rootConfig.grabButtonMask = vr::ButtonMaskFromId(vr::k_EButton_Grip);
             rootConfig.eventCallback = &SelectionMenu::OnEvent;
 
-            m_selectionRoot = api->CreateRoot(rootConfig);
+            m_selectionRoot = api->GetOrCreateRoot(rootConfig);
             if (!m_selectionRoot) {
-                spdlog::error("MenuStateManager::EnsureSelectionMenuReady - Failed to create selection menu root");
+                spdlog::error("MenuStateManager::EnsureSelectionMenuReady - Failed to get/create selection menu root");
                 return false;
             }
         }
@@ -77,7 +77,7 @@ bool MenuStateManager::EnsureGalleryMenuReady()
             return false;
         }
 
-        // Create root if needed
+        // Get or create root
         if (!m_galleryRoot) {
             P3DUI::RootConfig rootConfig = P3DUI::RootConfig::Default("gallery_menu_root", "InGamePatcherVR");
             rootConfig.interactive = true;
@@ -85,9 +85,9 @@ bool MenuStateManager::EnsureGalleryMenuReady()
             rootConfig.grabButtonMask = vr::ButtonMaskFromId(vr::k_EButton_Grip);
             rootConfig.eventCallback = &GalleryMenu::OnEvent;
 
-            m_galleryRoot = api->CreateRoot(rootConfig);
+            m_galleryRoot = api->GetOrCreateRoot(rootConfig);
             if (!m_galleryRoot) {
-                spdlog::error("MenuStateManager::EnsureGalleryMenuReady - Failed to create gallery menu root");
+                spdlog::error("MenuStateManager::EnsureGalleryMenuReady - Failed to get/create gallery menu root");
                 return false;
             }
         }
