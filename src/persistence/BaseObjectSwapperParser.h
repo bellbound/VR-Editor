@@ -9,9 +9,10 @@
 
 namespace Persistence {
 
-// Z-coordinate used for "deleted" references (far below the playable world)
-// Skyrim's playable area is roughly Z: -30000 to +30000
-constexpr float DELETED_REFERENCE_Z = -100000.0f;
+// Record flag for "Initially Disabled" - used for deleted references
+// See: https://en.uesp.net/wiki/Skyrim_Mod:Mod_File_Format#Records
+// When undeleting, we simply remove the flags() property (no need for flagsC)
+constexpr uint32_t INITIALLY_DISABLED_FLAG = 0x00000800;
 
 // Represents a single transform entry in a BOS INI file
 // Format: origRefID|posA(x,y,z),rotA(rx,ry,rz),scaleA(s)|100
@@ -26,7 +27,7 @@ struct BOSTransformEntry {
     std::string displayName;         // Display name if available (e.g., "Dragon Statue")
     std::string meshName;            // Mesh/model name (e.g., "architecture/whiterun/wrdragonstatue01.nif")
     std::string pluginName;          // Source plugin (e.g., "Skyrim.esm")
-    bool isDeleted = false;          // True if this is a "deleted" reference (moved below map)
+    bool isDeleted = false;          // True if this is a "deleted" reference (uses Initially Disabled flag)
 
     // Convert to BOS INI line format
     std::string ToIniLine() const;

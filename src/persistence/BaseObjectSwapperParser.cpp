@@ -19,15 +19,13 @@ std::string BOSTransformEntry::ToIniLine() const
 {
     std::ostringstream ss;
 
-    // Format: formKey|posA(x,y,z),rotA(rx,ry,rz),scaleA(s)|100
+    // Format: formKey|posA(x,y,z),rotA(rx,ry,rz),scaleA(s),flags(0x...)|100
     ss << formKeyString << "|";
 
-    // Position - for deleted references, use the deletion Z coordinate
-    float finalZ = isDeleted ? DELETED_REFERENCE_Z : position.z;
-
+    // Position
     ss << "posA(" << BaseObjectSwapperParser::FormatFloat(position.x) << ","
        << BaseObjectSwapperParser::FormatFloat(position.y) << ","
-       << BaseObjectSwapperParser::FormatFloat(finalZ) << ")";
+       << BaseObjectSwapperParser::FormatFloat(position.z) << ")";
 
     // Rotation
     ss << ",rotA(" << BaseObjectSwapperParser::FormatFloat(rotation.x) << ","
@@ -37,6 +35,13 @@ std::string BOSTransformEntry::ToIniLine() const
     // Scale (only if not 1.0)
     if (std::abs(scale - 1.0f) > 0.0001f) {
         ss << ",scaleA(" << BaseObjectSwapperParser::FormatFloat(scale) << ")";
+    }
+
+    // Initially Disabled flag for deleted references
+    // When undeleting, we remove flags() entirely (no need for flagsC to clear)
+    if (isDeleted) {
+        ss << ",flags(0x" << std::hex << std::setfill('0') << std::setw(8)
+           << INITIALLY_DISABLED_FLAG << ")";
     }
 
     // Chance is always 100
@@ -319,8 +324,8 @@ bool BaseObjectSwapperParser::WriteIniFile(const std::filesystem::path& filePath
     if (!deletedEntries.empty()) {
         file << "; ============================================================\n";
         file << "; DELETED REFERENCES (" << deletedEntries.size() << " entries)\n";
-        file << "; These objects are moved far below the world (Z = "
-             << FormatFloat(DELETED_REFERENCE_Z) << ")\n";
+        file << "; These objects have the Initially Disabled flag (0x00000800) set\n";
+        file << "; To restore: remove the flags() property from the entry\n";
         file << "; ============================================================\n";
         file << "\n";
 
@@ -548,6 +553,7 @@ bool BaseObjectSwapperParser::ParsePropertyString(std::string_view props, BOSTra
     entry.position = RE::NiPoint3(0, 0, 0);
     entry.rotation = RE::NiPoint3(0, 0, 0);
     entry.scale = 1.0f;
+    entry.isDeleted = false;
 
     bool hasPosition = false;
 
@@ -559,6 +565,8 @@ bool BaseObjectSwapperParser::ParsePropertyString(std::string_view props, BOSTra
         std::regex rotPattern(R"(rotA\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\))");
         // scaleA(s)
         std::regex scalePattern(R"(scaleA\s*\(\s*([+-]?\d*\.?\d+)\s*\))");
+        // flags(0x...) - detect Initially Disabled flag
+        std::regex flagsPattern(R"(flags\s*\(\s*0x([0-9A-Fa-f]+)\s*\))");
 
         std::string propsStr(props);
         std::smatch match;
@@ -581,6 +589,14 @@ bool BaseObjectSwapperParser::ParsePropertyString(std::string_view props, BOSTra
         // Parse scale
         if (std::regex_search(propsStr, match, scalePattern)) {
             entry.scale = std::stof(match[1].str());
+        }
+
+        // Parse flags - check for Initially Disabled flag
+        if (std::regex_search(propsStr, match, flagsPattern)) {
+            uint32_t flags = std::stoul(match[1].str(), nullptr, 16);
+            if (flags & INITIALLY_DISABLED_FLAG) {
+                entry.isDeleted = true;
+            }
         }
     } catch (const std::invalid_argument& e) {
         spdlog::error("BaseObjectSwapperParser: Invalid number format in properties '{}': {}",
