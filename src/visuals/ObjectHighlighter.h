@@ -18,11 +18,14 @@ struct ActiveEffect {
     HighlightType type;
 };
 
-// Initialize the highlighter system (caches effect shader forms)
+// Initialize the highlighter system (caches effect shader forms, registers frame listener)
 void Initialize();
 
 // Shutdown and cleanup
 void Shutdown();
+
+// Process pending highlights (called internally via frame listener, exposed for testing)
+void Update(float deltaTime);
 
 // Highlight a reference with an effect shader
 // Returns true if successfully highlighted

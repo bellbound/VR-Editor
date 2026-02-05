@@ -3,7 +3,6 @@
 #include "Action.h"
 #include "ActionHistoryRepository.h"
 #include "../selection/SelectionState.h"
-#include "../selection/DelayedHighlightRefreshManager.h"
 #include "../visuals/ObjectHighlighter.h"
 #include "../persistence/ChangedObjectRegistry.h"
 #include "../persistence/CreatedObjectTracker.h"
@@ -171,14 +170,12 @@ public:
         }
 
         // Clear old selection and select the new copies
+        // Note: ObjectHighlighter automatically defers highlight if 3D isn't ready yet
         selectionState->ClearAll();
         for (auto formId : newSelectionFormIds) {
             if (auto* form = RE::TESForm::LookupByID(formId)) {
                 if (auto* ref = form->AsReference()) {
                     selectionState->AddToSelection(ref);
-                    // Schedule delayed highlight for the new copy
-                    // The delay (2.0s) allows the engine to fully construct the 3D representation
-                    Selection::DelayedHighlightRefreshManager::GetSingleton()->ScheduleRefresh(ref);
                 }
             }
         }
