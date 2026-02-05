@@ -26,17 +26,14 @@ void HandRotationTransformer::Update(float deltaTime)
     // Get current hand rotation
     RE::NiMatrix3 currentHandRotation = GetHandRotation();
 
-    // Calculate delta in the controller's LOCAL frame (not world space).
-    // localDelta = startHand⁻¹ × currentHand
-    // This ensures the controller's yaw/pitch/roll map to the object's local axes
-    // regardless of the object's current orientation. A world-space delta (current × start⁻¹)
-    // would cause controller pitch to become object roll (etc.) when the object is already rotated.
+    // Calculate delta: how much the hand has rotated since Start()
+    // delta = current * inverse(start)
     RE::NiMatrix3 startInverse = InvertRotation(m_startHandRotation);
-    RE::NiMatrix3 localDelta = MultiplyRotations(startInverse, currentHandRotation);
+    RE::NiMatrix3 handDelta = MultiplyRotations(currentHandRotation, startInverse);
 
     // INVERT the rotation: we want the object to rotate opposite to hand movement
     // This makes the control feel more intuitive (like steering a wheel)
-    m_rawRotationDelta = InvertRotation(localDelta);
+    m_rawRotationDelta = InvertRotation(handDelta);
 
     // Apply rotation directly without smoothing (smoothing disabled)
     m_smoothedRotation = m_rawRotationDelta;
@@ -50,8 +47,7 @@ void HandRotationTransformer::Finish()
 
     // "Bake in" the current smoothed rotation into the accumulated rotation
     // This prevents the rotation from snapping back when we release the trigger
-    // Right-multiply: local-frame deltas accumulate in application order (acc × new)
-    m_accumulatedRotation = MultiplyRotations(m_accumulatedRotation, m_smoothedRotation);
+    m_accumulatedRotation = MultiplyRotations(m_smoothedRotation, m_accumulatedRotation);
 
     // Reset for next gesture
     m_rawRotationDelta = RE::NiMatrix3();
