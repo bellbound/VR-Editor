@@ -150,7 +150,9 @@ This mod is still in **Beta** until sufficient user feedback has been gathered.
 
 ## Compatibility
 
-⚠️ Currently incompatible with **Spell Bender VR**
+Compatible with the vast majority of mods
+Some mods that change all arrow projectiles at the engine level might be incompatible
+Spell Bender VR is compatible
 
 ---
 
