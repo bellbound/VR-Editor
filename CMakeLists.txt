@@ -43,6 +43,9 @@ add_commonlibsse_plugin(${PROJECT_NAME} SOURCES ${headers} ${sources})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23) # <--- use C++23 standard
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/PCH.h) # <--- PCH.h is required!
 
+string(TIMESTAMP VREDIT_BUILD_DATE "%Y-%m-%d")
+string(TIMESTAMP VREDIT_BUILD_TIME "%H:%M:%S")
+
 target_include_directories(
 	"${PROJECT_NAME}"
 	PRIVATE
@@ -52,7 +55,13 @@ target_include_directories(
 )
 
 # Define export macro for DLL API
-target_compile_definitions(${PROJECT_NAME} PRIVATE IN_GAME_PATCHER_EXPORTS)
+target_compile_definitions(
+	${PROJECT_NAME}
+	PRIVATE
+		IN_GAME_PATCHER_EXPORTS
+		VREDIT_BUILD_DATE="${VREDIT_BUILD_DATE}"
+		VREDIT_BUILD_TIME="${VREDIT_BUILD_TIME}"
+)
 
 # Generate PDB in Release builds
 if(MSVC)
