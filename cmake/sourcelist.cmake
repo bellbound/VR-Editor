@@ -29,6 +29,7 @@ set(sources ${sources}
     src/selection/HoverStateManager.cpp
     src/selection/SphereHoverStateManager.cpp
     src/selection/DelayedHighlightRefreshManager.cpp
+    src/selection/ConsoleManager.cpp
     src/grab/TransformSmoother.cpp
     src/grab/RemoteGrabController.cpp
     src/grab/RemoteSelectionController.cpp

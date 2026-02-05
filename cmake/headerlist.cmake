@@ -32,6 +32,7 @@ set(headers ${headers}
     src/selection/SelectionState.h
     src/selection/HoverStateManager.h
     src/selection/DelayedHighlightRefreshManager.h
+    src/selection/ConsoleManager.h
     src/ui/SelectionMenu.h
     src/ui/SelectionMenuHelpers.h
     src/ui/MenuStateManager.h

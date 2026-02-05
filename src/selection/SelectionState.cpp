@@ -1,4 +1,5 @@
 #include "SelectionState.h"
+#include "ConsoleManager.h"
 #include "../visuals/ObjectHighlighter.h"
 #include "../actions/ActionHistoryRepository.h"
 #include "../ui/SelectionMenu.h"
@@ -121,6 +122,7 @@ void SelectionState::SetSingleSelection(RE::TESObjectREFR* ref)
         SelectionInfo info = CreateSelectionInfo(ref);
         m_selection.push_back(info);
         ApplyHighlight(ref);
+        ConsoleManager::MayConsolePrid(ref);
         spdlog::info("SelectionState: Set single selection to {:08X}", ref->GetFormID());
     }
 

@@ -48,6 +48,12 @@ namespace Options {
     /// Default: true (1)
     constexpr std::string_view kQuickEditEnabled = "Controls:bQuickEditEnabled";
 
+    /// Selecting an object in VR Editor also selects it in the console.
+    /// This allows immediate use of console commands on the selected object.
+    /// Type: bool (stored as int 0/1)
+    /// Default: true (1)
+    constexpr std::string_view kSelectInConsole = "Controls:bSelectInConsole";
+
     // =========================================================================
     // [Grid] Section - Snap-to-grid settings
     // =========================================================================

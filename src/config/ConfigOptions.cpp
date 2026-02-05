@@ -43,6 +43,11 @@ void RegisterConfigOptions()
     // Default: true (1) - quick edit enabled by default for convenience
     config->RegisterIntOption(Options::kQuickEditEnabled, 1);
 
+    // Selecting an object in VR Editor also selects it in the console.
+    // This allows immediate use of console commands on the selected object.
+    // Default: true (1) - enabled by default for power users
+    config->RegisterIntOption(Options::kSelectInConsole, 1);
+
     // =========================================================================
     // [Persistence] Section - Save/export settings
     // =========================================================================
@@ -68,13 +73,9 @@ void RegisterConfigOptions()
     // Default: 24
     config->RegisterIntOption(Options::kRotationSnappingStops, 24);
 
-    // =========================================================================
-    // Select Options (dropdown menus)
-    // =========================================================================
-    // Register any select/dropdown options here. Example:
-    // config->RegisterSelectOptions("Controls:sGrabMode", {"Raycast", "Sphere", "Direct"}, "Raycast");
 
-    spdlog::info("ConfigOptions: Registered {} options", 8);
+
+    spdlog::info("ConfigOptions: Registered {} options", 9);
 }
 
 } // namespace Config
