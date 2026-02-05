@@ -5,11 +5,7 @@ namespace Util::RotationMath {
 
 float ExtractZRotation(const RE::NiMatrix3& m)
 {
-    // For Skyrim's row-vector convention (SetEulerAnglesXYZ):
-    // entry[0][0] = cosY * cosZ
-    // entry[0][1] = cosY * sinZ
-    // So: atan2(entry[0][1], entry[0][0]) = atan2(sinZ, cosZ) = Z
-    return std::atan2(m.entry[0][1], m.entry[0][0]);
+    return std::atan2(m.entry[1][0], m.entry[0][0]);
 }
 
 RE::NiMatrix3 EulerToMatrix(const RE::NiPoint3& angles)
@@ -22,18 +18,17 @@ RE::NiMatrix3 EulerToMatrix(const RE::NiPoint3& angles)
     float sz = std::sin(angles.z);
 
     RE::NiMatrix3 result;
-    // Match Skyrim's NiMatrix3::SetEulerAnglesXYZ exactly
-    // This is the row-vector convention used by the engine
+    // ZYX rotation order: first Z (yaw), then Y (roll), then X (pitch)
     result.entry[0][0] = cy * cz;
-    result.entry[0][1] = cy * sz;
-    result.entry[0][2] = -sy;
+    result.entry[0][1] = -cy * sz;
+    result.entry[0][2] = sy;
 
-    result.entry[1][0] = sx * sy * cz - cx * sz;
-    result.entry[1][1] = sx * sy * sz + cx * cz;
-    result.entry[1][2] = sx * cy;
+    result.entry[1][0] = sx * sy * cz + cx * sz;
+    result.entry[1][1] = -sx * sy * sz + cx * cz;
+    result.entry[1][2] = -sx * cy;
 
-    result.entry[2][0] = cx * sy * cz + sx * sz;
-    result.entry[2][1] = cx * sy * sz - sx * cz;
+    result.entry[2][0] = -cx * sy * cz + sx * sz;
+    result.entry[2][1] = cx * sy * sz + sx * cz;
     result.entry[2][2] = cx * cy;
 
     return result;
