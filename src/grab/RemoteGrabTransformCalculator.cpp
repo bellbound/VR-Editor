@@ -84,9 +84,8 @@ ComputedObjectTransform RemoteGrabTransformCalculator::CalculateFloating(
 
     // Apply Z rotation via matrix multiplication to preserve original orientation exactly
     // This avoids lossy Matrix->Euler->Matrix round-trip that causes rotation snapping
-    // R_new = R_z(-effectiveDelta) * R_original
-    // Note: Use NEGATIVE delta to rotate objects in the intuitive direction
-    RE::NiMatrix3 deltaRotation = PositioningUtil::RotationAroundZ(-effectiveDelta);
+    // R_new = R_z(effectiveDelta) * R_original
+    RE::NiMatrix3 deltaRotation = PositioningUtil::RotationAroundZ(effectiveDelta);
     result.transform.rotate = PositioningUtil::MultiplyMatrices(deltaRotation, obj.initialTransform.rotate);
 
     // Lossless Euler angles for game data update

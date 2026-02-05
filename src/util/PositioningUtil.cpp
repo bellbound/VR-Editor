@@ -103,11 +103,13 @@ RE::NiMatrix3 RotationAroundZ(float angle)
     float c = std::cos(angle);
     float s = std::sin(angle);
 
+    // Match Skyrim's row-vector convention (same as NiMatrix3::SetEulerAnglesXYZ)
+    // For Z-only rotation: entry[0][1] = +sin, entry[1][0] = -sin
     result.entry[0][0] = c;
-    result.entry[0][1] = -s;
+    result.entry[0][1] = s;
     result.entry[0][2] = 0.0f;
 
-    result.entry[1][0] = s;
+    result.entry[1][0] = -s;
     result.entry[1][1] = c;
     result.entry[1][2] = 0.0f;
 
