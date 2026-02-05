@@ -17,6 +17,7 @@ set(headers ${headers}
     src/util/PositioningUtil.h
     src/util/Raycast.h
     src/util/SelectionLogger.h
+    src/util/ActionLogger.h
     src/util/TouchingObjectsFinder.h
     src/util/VRNodes.h
     src/util/UUID.h
