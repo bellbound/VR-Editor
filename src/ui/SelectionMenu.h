@@ -657,7 +657,7 @@ private:
         // Delete button
         P3DUI::ElementConfig deleteConfig = P3DUI::ElementConfig::Default("action_delete");
         deleteConfig.texturePath = "textures\\VRBuildMode\\trash.dds";
-        deleteConfig.tooltip = L"Delete";
+        deleteConfig.tooltip = L"Disable";
         deleteConfig.scale = 1.1f;
         deleteConfig.facingMode = P3DUI::FacingMode::None;
 

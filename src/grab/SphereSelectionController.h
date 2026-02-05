@@ -46,11 +46,10 @@ public:
     static constexpr float kDefaultRadius = 25.0f;        // Default sphere radius in game units
     static constexpr float kMinRadius = 2.5f;             // Minimum sphere radius
     static constexpr float kMaxRadius = 1500.0f;            // Maximum sphere radius
-    static constexpr float kRadiusStep = 3.0f;            // Radius change per scroll tick
     static constexpr float kScanIntervalMs = 50.0f;       // Scan throttle in milliseconds (20 scans/sec)
     static constexpr float kMaxRayDistance = 10000.0f;     // Max distance for placement ray
     static constexpr float kThumbstickDeadzone = 0.3f;    // Deadzone for thumbstick input
-    static constexpr float kRadiusScaleSpeed = 20.0f;     // Radius change per second at full thumbstick
+    static constexpr float kRadiusScaleSpeed = 50.0f;     // Radius change per second at full thumbstick
 
 private:
     SphereSelectionController() = default;

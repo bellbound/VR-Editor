@@ -92,7 +92,7 @@ public:
     static constexpr float kGroundRayMaxDistance = 2000.0f; // Max distance for ground snap raycast
     static constexpr float kScaleSpeed = 1.0f;             // Scale multiplier change per second
     static constexpr float kMinScale = 0.1f;               // Minimum allowed scale
-    static constexpr float kMaxScale = 100.0f;             // Maximum allowed scale
+    static constexpr float kMaxScale = 10.0f;             // Maximum allowed scale
 
 private:
     RemoteGrabController() = default;

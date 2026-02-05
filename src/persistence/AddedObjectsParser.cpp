@@ -341,11 +341,10 @@ bool AddedObjectsParser::WriteIniFile(const std::filesystem::path& filePath,
         file << ";\n";
         file << "; IMPORTANT: This file differs from _SWAP.ini files!\n";
         file << "; - _SWAP.ini: Repositions EXISTING world references (uses Base Object Swapper)\n";
-        file << "; - _AddedObjects.ini: SPAWNS NEW objects from base forms (handled by this mod)\n";
+        file << "; - _AddedObjects.ini: tracks NEWLY SPAWNED objects from base forms (Either from duplicate button or gallery)\n";
         file << ";\n";
-        file << "; Objects in this file are dynamically created when the player enters\n";
-        file << "; this cell. They persist for the game session but are not saved to\n";
-        file << "; the game save file.\n";
+        file << "; This file currently only serves as a log for your added objects\n";
+        file << "; the actual added objects are stored in the game save file. \n";
         file << ";\n";
         file << "; Cell FormKey: " << cellFormKey << "\n";
         file << ";\n";

@@ -46,7 +46,7 @@ void RegisterConfigOptions()
     // Selecting an object in VR Editor also selects it in the console.
     // This allows immediate use of console commands on the selected object.
     // Default: true (1) - enabled by default for power users
-    config->RegisterIntOption(Options::kSelectInConsole, 1);
+    config->RegisterIntOption(Options::kSelectInConsole, 0);
 
     // =========================================================================
     // [Persistence] Section - Save/export settings
