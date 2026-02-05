@@ -172,6 +172,7 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 	switch (a_msg->type) {
 	case SKSE::MessagingInterface::kPostLoad:
 		spdlog::info("PostLoad");
+		spdlog::info("Build timestamp: {} {}", VREDIT_BUILD_DATE, VREDIT_BUILD_TIME);
 
 		// Apply any pending session files BEFORE BOS loads its INI files
 		// BOS locks _SWAP.ini files when reading them, so we use _session.ini files
