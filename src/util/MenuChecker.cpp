@@ -82,7 +82,6 @@ namespace MenuChecker
     {
         for (const auto& menu : openMenus) {
             if (gameStoppingMenus.contains(menu)) {
-            spdlog::info("MenuChecker: Game stopped {}", menu);
                 
                 return true;
             }
