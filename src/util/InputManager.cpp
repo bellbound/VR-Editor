@@ -1,4 +1,5 @@
 #include "InputManager.h"
+#include "MenuChecker.h"
 #include "../log.h"
 #include "../interfaces/ThreeDUIInterface001.h"
 #include <algorithm>
@@ -122,6 +123,10 @@ void InputManager::RemoveVrAxisCallback(CallbackId id)
 
 uint64_t InputManager::InvokeButtonCallbacks(bool isLeft, bool isReleased, uint64_t changedButtons)
 {
+	if (MenuChecker::IsGameStopped()) {
+		return 0;
+	}
+
 	uint64_t blockedButtons = 0;
 
 	// IMPORTANT: Make a copy of callbacks before iterating!
@@ -144,11 +149,15 @@ uint64_t InputManager::InvokeButtonCallbacks(bool isLeft, bool isReleased, uint6
 		}
 	}
 
+
 	return blockedButtons;
 }
 
 uint32_t InputManager::InvokeAxisCallbacks(bool isLeft, const vr::VRControllerState_t* state)
 {
+	if (MenuChecker::IsGameStopped()) {
+		return 0;
+	}
 	uint32_t blockedAxes = 0;
 
 	// Make a copy to avoid iterator invalidation

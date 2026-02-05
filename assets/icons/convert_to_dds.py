@@ -20,7 +20,7 @@ from pathlib import Path
 # Configuration - path relative to script location (skse/<mod>/assets/icons/)
 _SCRIPT_DIR = Path(__file__).parent.resolve()
 _PROJECT_ROOT = _SCRIPT_DIR.parents[3]  # Up 4 levels to project root
-MOD_TEXTURES_DIR = _PROJECT_ROOT / "papyrus" / "mods" / "VR Build Mode" / "textures" / "VRBuildMode"
+MOD_TEXTURES_DIR = _PROJECT_ROOT / "papyrus" / "mods" / "VR Editor" / "textures" / "VREditor"
 
 
 def convert_svgs_to_pngs(svg_dir: Path, png_dir: Path):

@@ -578,15 +578,23 @@ struct Root : Container {
 // =============================================================================
 
 // Interface version for compatibility checking
-// Consumers should verify: api->GetInterfaceVersion() == P3DUI_INTERFACE_VERSION
-constexpr uint32_t P3DUI_INTERFACE_VERSION = 1;
+// Format: Major * 1000000 + Minor * 10000 + Patch * 100 + Build
+//
+// Version Compatibility Rules:
+// - Pre-1.0.0 (version < 1000000): Major AND minor must match exactly.
+//   Example: 0.10.1.0 and 0.10.0.0 are compatible, 0.10.x and 0.9.x are NOT.
+// - Post-1.0.0 (version >= 1000000): Backwards compatible within same major.
+//   Provider minor version must be >= consumer expected minor.
+//   Only major version changes break compatibility.
+constexpr uint32_t P3DUI_INTERFACE_VERSION =
+    0 * 1000000 +
+    9 * 10000 +
+    5 * 100 +
+    0;
 
 struct Interface001 {
     // === Version ===
-    // Returns P3DUI_INTERFACE_VERSION (1 for this interface)
     virtual uint32_t GetInterfaceVersion() = 0;
-    // Returns implementation build number (increments with each release)
-    virtual uint32_t GetBuildNumber() = 0;
 
     // === Root Management ===
     // Gets an existing root by ID, or creates it if it doesn't exist.
@@ -594,6 +602,8 @@ struct Interface001 {
     // Safe to call multiple times with the same ID — returns the existing root.
     // Config is only used on first creation; subsequent calls ignore config differences.
     virtual Root* GetOrCreateRoot(const RootConfig& config) = 0;
+    // Get an existing root by ID. Returns nullptr if not found.
+    virtual Root* GetRoot(const char* id) = 0;
 
     // === Factory Methods ===
     // Create nodes. Caller must add to a container via AddChild().

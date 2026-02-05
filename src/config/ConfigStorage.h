@@ -23,7 +23,7 @@ public:
 
     /// Initialize with mod name. Must be called once at plugin load.
     /// Creates directory structure if needed.
-    /// @param modName - Name used for folder and INI file (e.g., "VRBuildMode")
+    /// @param modName - Name used for folder and INI file (e.g., "VREditor")
     void Initialize(std::string_view modName);
 
     bool IsInitialized() const { return m_initialized; }

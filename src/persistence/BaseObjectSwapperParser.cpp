@@ -252,9 +252,7 @@ bool BaseObjectSwapperParser::WriteIniFile(const std::filesystem::path& filePath
         return true;  // Nothing to write
     }
 
-    // Determine the session file path - we write to _session.ini to avoid BOS file lock
-    // filePath is the "canonical" swap file path (e.g., VREditor_Location_SWAP.ini)
-    // We write to Data/VREditor/VREditor_Location_SWAP_session.ini instead
+
     auto sessionFilePath = GetSessionFilePath(filePath);
 
     // Ensure the VREditor folder exists
@@ -422,7 +420,7 @@ std::filesystem::path BaseObjectSwapperParser::GetDataFolderPath() const
 
 std::filesystem::path BaseObjectSwapperParser::GetVREditorFolderPath() const
 {
-    auto vrEditorPath = GetDataFolderPath() / "VREditor";
+    auto vrEditorPath = GetDataFolderPath() / "SKSE" / "Plugins" / "VREditor";
 
     // Create the folder if it doesn't exist
     if (!std::filesystem::exists(vrEditorPath)) {
@@ -485,7 +483,7 @@ std::filesystem::path BaseObjectSwapperParser::GetSessionFilePath(const std::fil
     }
 
     // Put in VREditor subfolder (swapFilePath is in Data/, session goes to Data/VREditor/)
-    return swapFilePath.parent_path() / "VREditor" / filename;
+    return swapFilePath.parent_path() / "SKSE" / "Plugins" / "VREditor" / filename;
 }
 
 std::filesystem::path BaseObjectSwapperParser::GetSwapFilePath(const std::filesystem::path& sessionFilePath)
@@ -509,7 +507,7 @@ std::filesystem::path BaseObjectSwapperParser::GetSwapFilePath(const std::filesy
 void BaseObjectSwapperParser::ApplyPendingSessionFiles() const
 {
     // Session files are stored in Data/VREditor/
-    auto vrEditorPath = GetDataFolderPath() / "VREditor";
+    auto vrEditorPath = GetDataFolderPath() / "SKSE" / "Plugins" / "VREditor";;
 
     if (!std::filesystem::exists(vrEditorPath)) {
         spdlog::trace("BaseObjectSwapperParser: VREditor folder doesn't exist, no session files to apply");

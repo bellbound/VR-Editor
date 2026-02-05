@@ -28,11 +28,7 @@ namespace Persistence {
 // - Plugin initialization must call BaseObjectSwapperParser::ApplyPendingSessionFiles()
 //   BEFORE BOS loads (use SKSEMessagingInterface kDataLoaded or earlier)
 //
-// File Layout:
-// - Data/VREditor_{CellId}_SWAP.ini                - Swap files read by BOS
-// - Data/VREditor/VREditor_{CellId}_SWAP_session.ini        - Session files we write to
-// - Data/VREditor/VREditor_{CellId}_AddedObjects.ini        - Added object files
-// - Format: [Transforms] section with absolute position/rotation
+
 class BaseObjectSwapperExporter {
 public:
     static BaseObjectSwapperExporter* GetSingleton();

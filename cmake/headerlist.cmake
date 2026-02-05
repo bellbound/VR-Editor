@@ -3,6 +3,7 @@ set(headers ${headers}
 	src/api/VREditorPapyrusAPI.h
 	src/PCH.h
     src/log.h
+    src/HealthCheck.h
     src/IFrameUpdateListener.h
     src/FrameCallbackDispatcher.h
     src/EditModeManager.h
@@ -59,7 +60,6 @@ set(headers ${headers}
     src/gallery/GalleryItem.h
     src/gallery/GalleryManager.h
     src/gallery/GalleryPlacementUtil.h
-    src/test/.h
     src/config/ConfigStorage.h
     src/config/ConfigStoragePapyrusAdapter.h
     src/config/ConfigOptions.h

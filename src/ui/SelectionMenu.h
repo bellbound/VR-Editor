@@ -644,7 +644,7 @@ private:
 
         // Copy/Duplicate button
         P3DUI::ElementConfig copyConfig = P3DUI::ElementConfig::Default("action_copy");
-        copyConfig.texturePath = "textures\\VRBuildMode\\copy.dds";
+        copyConfig.texturePath = "textures\\VREditor\\copy.dds";
         copyConfig.tooltip = L"Duplicate";
         copyConfig.scale = 1.1f;
         copyConfig.facingMode = P3DUI::FacingMode::None;
@@ -656,7 +656,7 @@ private:
 
         // Delete button
         P3DUI::ElementConfig deleteConfig = P3DUI::ElementConfig::Default("action_delete");
-        deleteConfig.texturePath = "textures\\VRBuildMode\\trash.dds";
+        deleteConfig.texturePath = "textures\\VREditor\\trash.dds";
         deleteConfig.tooltip = L"Disable";
         deleteConfig.scale = 1.1f;
         deleteConfig.facingMode = P3DUI::FacingMode::None;
@@ -668,7 +668,7 @@ private:
 
         // Reset Rotation button
         P3DUI::ElementConfig resetRotConfig = P3DUI::ElementConfig::Default("action_reset_rotation");
-        resetRotConfig.texturePath = "textures\\VRBuildMode\\reset-rotation.dds";
+        resetRotConfig.texturePath = "textures\\VREditor\\reset-rotation.dds";
         resetRotConfig.tooltip = L"Reset Rotation";
         resetRotConfig.scale = 1.1f;
         resetRotConfig.facingMode = P3DUI::FacingMode::None;
@@ -690,8 +690,8 @@ private:
             P3DUI::ElementConfig galleryActionConfig = P3DUI::ElementConfig::Default(
                 isInGallery ? "action_remove_from_gallery" : "action_save_to_gallery");
             galleryActionConfig.texturePath = isInGallery
-                ? "textures\\VRBuildMode\\save_highlight.dds"
-                : "textures\\VRBuildMode\\save.dds";
+                ? "textures\\VREditor\\save_highlight.dds"
+                : "textures\\VREditor\\save.dds";
             galleryActionConfig.tooltip = isInGallery ? L"Remove from Gallery" : L"Save to Gallery";
             galleryActionConfig.scale = 1.1f;
             galleryActionConfig.facingMode = P3DUI::FacingMode::None;
@@ -735,7 +735,7 @@ private:
 
         // Undo button (big)
         P3DUI::ElementConfig undoConfig = P3DUI::ElementConfig::Default("tool_undo");
-        undoConfig.texturePath = "textures\\VRBuildMode\\undo.dds";
+        undoConfig.texturePath = "textures\\VREditor\\undo.dds";
         undoConfig.tooltip = L"Undo (A, A)";
         undoConfig.scale = bigButtonScale;
         undoConfig.hoverThreshold = bigButtonHoverThreshold;
@@ -760,7 +760,7 @@ private:
 
         // Redo button (big)
         P3DUI::ElementConfig redoConfig = P3DUI::ElementConfig::Default("tool_redo");
-        redoConfig.texturePath = "textures\\VRBuildMode\\redo.dds";
+        redoConfig.texturePath = "textures\\VREditor\\redo.dds";
         redoConfig.tooltip = L"Redo (B, B)";
         redoConfig.scale = bigButtonScale;
         redoConfig.hoverThreshold = bigButtonHoverThreshold;
@@ -775,7 +775,7 @@ private:
 
         // Close button - exits edit mode
         P3DUI::ElementConfig closeConfig = P3DUI::ElementConfig::Default("tool_close");
-        closeConfig.texturePath = "textures\\VRBuildMode\\close.dds";
+        closeConfig.texturePath = "textures\\VREditor\\close.dds";
         closeConfig.tooltip = L"Exit Edit Mode";
         closeConfig.scale = 1.1f;
         closeConfig.facingMode = P3DUI::FacingMode::None;
@@ -791,7 +791,7 @@ private:
         // Gallery button - opens standalone GalleryMenu (only shown when gallery has items)
         if (hasGalleryItems) {
             P3DUI::ElementConfig galleryConfig = P3DUI::ElementConfig::Default("tool_gallery");
-            galleryConfig.texturePath = "textures\\VRBuildMode\\gallery.dds";
+            galleryConfig.texturePath = "textures\\VREditor\\gallery.dds";
             galleryConfig.tooltip = L"Open Gallery";
             galleryConfig.scale = 1.1f;
             galleryConfig.facingMode = P3DUI::FacingMode::None;
@@ -806,8 +806,8 @@ private:
         bool groupMoveEnabled = Grab::RemoteGrabController::IsGroupMoveEnabled();
         P3DUI::ElementConfig groupMoveConfig = P3DUI::ElementConfig::Default("tool_group_move");
         groupMoveConfig.texturePath = groupMoveEnabled
-            ? "textures\\VRBuildMode\\group-move_highlight.dds"
-            : "textures\\VRBuildMode\\group-move.dds";
+            ? "textures\\VREditor\\group-move_highlight.dds"
+            : "textures\\VREditor\\group-move.dds";
         groupMoveConfig.tooltip = L"Auto-select touching physics objects";
         groupMoveConfig.scale = 1.1f;
         groupMoveConfig.facingMode = P3DUI::FacingMode::None;
@@ -821,8 +821,8 @@ private:
         bool snapToGridEnabled = Grab::RemoteGrabController::IsSnapToGridEnabled();
         P3DUI::ElementConfig snapToGridConfig = P3DUI::ElementConfig::Default("tool_snap_to_grid");
         snapToGridConfig.texturePath = snapToGridEnabled
-            ? "textures\\VRBuildMode\\snap-to-grid_highlight.dds"
-            : "textures\\VRBuildMode\\snap-to-grid.dds";
+            ? "textures\\VREditor\\snap-to-grid_highlight.dds"
+            : "textures\\VREditor\\snap-to-grid.dds";
         snapToGridConfig.tooltip = L"Snap to grid";
         snapToGridConfig.scale = 1.1f;
         snapToGridConfig.facingMode = P3DUI::FacingMode::None;
@@ -849,15 +849,15 @@ private:
 
             if (hasOverride) {
                 // Override is set - show highlight, clicking disables it
-                gridAlignConfig.texturePath = "textures\\VRBuildMode\\grid-reset_highlight.dds";
+                gridAlignConfig.texturePath = "textures\\VREditor\\grid-reset_highlight.dds";
                 gridAlignConfig.tooltip = L"Disable grid alignment";
             } else if (selCount == 2) {
                 // Exactly 2 selected - can align
-                gridAlignConfig.texturePath = "textures\\VRBuildMode\\grid-reset.dds";
+                gridAlignConfig.texturePath = "textures\\VREditor\\grid-reset.dds";
                 gridAlignConfig.tooltip = L"Align grid to selection";
             } else {
                 // Wrong selection count - show disabled
-                gridAlignConfig.texturePath = "textures\\VRBuildMode\\grid-reset-disabled.dds";
+                gridAlignConfig.texturePath = "textures\\VREditor\\grid-reset-disabled.dds";
                 gridAlignConfig.tooltip = L"Align grid to selection. Select exactly 2 objects (Hold A for multi select)";
             }
 

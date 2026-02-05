@@ -442,7 +442,7 @@ std::filesystem::path AddedObjectsParser::GetVREditorFolderPath() const
     std::filesystem::path skyrimPath(exePath);
     skyrimPath = skyrimPath.parent_path();  // Remove executable name
 
-    auto vrEditorPath = skyrimPath / "Data" / "VREditor";
+    auto vrEditorPath = skyrimPath / "Data" / "SKSE" / "Plugins" / "VREditor";
 
     // Create the folder if it doesn't exist
     if (!std::filesystem::exists(vrEditorPath)) {

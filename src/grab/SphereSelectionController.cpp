@@ -397,7 +397,7 @@ void SphereSelectionController::CreateSphereVisual()
     }
 
     // Get or create root for sphere - non-interactive, world-positioned
-    P3DUI::RootConfig rootCfg = P3DUI::RootConfig::Default("sphere_select", "VRBuildMode");
+    P3DUI::RootConfig rootCfg = P3DUI::RootConfig::Default("sphere_select", "VREditor");
     rootCfg.interactive = false;
     m_sphereRoot = api->GetOrCreateRoot(rootCfg);
 

@@ -285,7 +285,7 @@ std::filesystem::path SpriggitExporter::GetVREditorFolderPath() const
     std::filesystem::path skyrimPath(exePath);
     skyrimPath = skyrimPath.parent_path();
 
-    return skyrimPath / "Data" / "VREditor";
+    return skyrimPath / "Data" / "SKSE" / "Plugins" / "VREditor";;
 }
 
 bool SpriggitExporter::WritePartialYaml(const std::filesystem::path& dirPath,

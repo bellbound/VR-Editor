@@ -1,4 +1,5 @@
 #include "log.h"
+#include "HealthCheck.h"
 #include "util/InputManager.h"
 #include "util/MenuChecker.h"
 #include "util/SkyrimNetInterface.h"
@@ -118,10 +119,6 @@ private:
 // Flag to track if input systems have been initialized
 static bool g_inputSystemsInitialized = false;
 
-// Flag to track if 3DUI is missing (set at DataLoaded, used for deferred notification)
-static bool g_3DUIMissing = false;
-static bool g_3DUIMissingNotificationShown = false;
-
 // Initialize input-related systems. Called on first game load/new game.
 // Deferred from DataLoaded to allow 3DUI to register its VR input callbacks first.
 void InitializeInputSystems()
@@ -172,7 +169,6 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 	switch (a_msg->type) {
 	case SKSE::MessagingInterface::kPostLoad:
 		spdlog::info("PostLoad");
-		spdlog::info("Build timestamp: {} {}", VREDIT_BUILD_DATE, VREDIT_BUILD_TIME);
 
 		// Apply any pending session files BEFORE BOS loads its INI files
 		// BOS locks _SWAP.ini files when reading them, so we use _session.ini files
@@ -202,11 +198,10 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 		{
 			auto* p3dui = P3DUI::GetInterface001();
 			if (p3dui) {
-				spdlog::info("3DUI interface registered! Version: {}, Build: {}",
-					p3dui->GetInterfaceVersion(), p3dui->GetBuildNumber());
+				spdlog::info("3DUI interface registered! Actual version: {}, Expected version: {}",
+					p3dui->GetInterfaceVersion(), P3DUI::P3DUI_INTERFACE_VERSION);
 			} else {
 				spdlog::warn("3DUI interface not available - 3DUI.dll may not be installed");
-				g_3DUIMissing = true;
 			}
 		}
 
@@ -277,12 +272,8 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 			spdlog::warn("Displayed user notification: SkyrimVRTools missing");
 		}
 
-		// Notify user if 3DUI is missing (deferred from DataLoaded, only show once per session)
-		if (g_3DUIMissing && !g_3DUIMissingNotificationShown) {
-			RE::DebugNotification("VR Build Mode: Requirement 3DUI is missing, disabling mod functionality");
-			spdlog::warn("Displayed user notification: 3DUI missing");
-			g_3DUIMissingNotificationShown = true;
-		}
+		// Check dependency versions and notify user if incompatible (only shows once per session)
+		HealthCheck::GetSingleton()->MayShowDependenciesErrorMessage();
 
 		break;
 
@@ -299,12 +290,9 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 			spdlog::warn("Displayed user notification: SkyrimVRTools missing");
 		}
 
-		// Notify user if 3DUI is missing (deferred from DataLoaded, only show once per session)
-		if (g_3DUIMissing && !g_3DUIMissingNotificationShown) {
-			RE::DebugNotification("VR Build Mode: Requirement 3DUI is missing, disabling mod functionality");
-			spdlog::warn("Displayed user notification: 3DUI missing");
-			g_3DUIMissingNotificationShown = true;
-		}
+		// Check dependency versions and notify user if incompatible (only shows once per session)
+		HealthCheck::GetSingleton()->MayShowDependenciesErrorMessage();
+
 		break;
 	}
 }
@@ -314,6 +302,8 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
 	SetupLog();
 
 	spdlog::info("InGamePatcher VR loading...");
+	spdlog::info("Build timestamp: {} {}", VREDIT_BUILD_DATE, VREDIT_BUILD_TIME);
+	spdlog::info("Expected 3DUI interface version: {}", P3DUI::P3DUI_INTERFACE_VERSION);
 
 	// Install main thread hook for frame updates (must be done early)
 	if (!FrameCallbackDispatcher::InstallHook()) {
@@ -337,7 +327,7 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
 	}
 
 	// Initialize config storage system
-	Config::ConfigStorage::GetSingleton()->Initialize("VRBuildMode");
+	Config::ConfigStorage::GetSingleton()->Initialize("VREditor");
 
 	// Register all config options with their default values
 	// This ensures options exist in INI on first run and defines select dropdown choices

@@ -55,8 +55,8 @@ void SphereHoverStateManager::SetHoveredObjects(const std::vector<RE::TESObjectR
     }
 
     // Update the reference vector
-    m_hoveredRefs.clear();
     m_hoveredRefs.reserve(objects.size());
+    m_hoveredRefs.clear();
     for (auto* ref : objects) {
         if (ref) {
             m_hoveredRefs.push_back(ref);
@@ -97,7 +97,6 @@ void SphereHoverStateManager::Clear()
     m_hoveredRefs.clear();
     m_hoveredFormIds.clear();
 
-    spdlog::trace("SphereHoverStateManager: Cleared all hover state");
 }
 
 void SphereHoverStateManager::ApplyHoverHighlight(RE::TESObjectREFR* ref)

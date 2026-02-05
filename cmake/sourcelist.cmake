@@ -1,5 +1,6 @@
 set(sources ${sources}
     src/plugin.cpp
+    src/HealthCheck.cpp
     src/api/InGamePatcherAPI.cpp
     src/api/VREditorPapyrusAPI.cpp
     src/api/VRBuilderNativePapyrusAPI.cpp
