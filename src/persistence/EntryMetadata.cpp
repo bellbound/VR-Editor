@@ -6,10 +6,10 @@ namespace Persistence {
 
 std::string EntryMetadata::ToCommentLine() const
 {
-    // Format: ; EditorId|DisplayName|MeshPath
+    // Format: ; EditorId|DisplayName|MeshPath|FormType
     // Empty fields are preserved as empty strings between pipes
     std::ostringstream ss;
-    ss << "; " << editorId << "|" << displayName << "|" << meshName;
+    ss << "; " << editorId << "|" << displayName << "|" << meshName << "|" << formTypeName;
     return ss.str();
 }
 
@@ -28,7 +28,7 @@ bool EntryMetadata::ParseFromComment(std::string_view commentLine, EntryMetadata
         content = content.substr(1);
     }
 
-    // Must contain at least two pipes (3 fields)
+    // Must contain at least two pipes (3+ fields)
     size_t pipeCount = std::count(content.begin(), content.end(), '|');
     if (pipeCount < 2) {
         return false;
@@ -52,7 +52,7 @@ bool EntryMetadata::ParseFromComment(std::string_view commentLine, EntryMetadata
         fields.push_back(field);
     }
 
-    // Need exactly 3 fields (editorId, displayName, meshName)
+    // Need at least 3 fields (editorId, displayName, meshName)
     if (fields.size() < 3) {
         return false;
     }
@@ -61,12 +61,23 @@ bool EntryMetadata::ParseFromComment(std::string_view commentLine, EntryMetadata
     outMetadata.displayName = fields[1];
     outMetadata.meshName = fields[2];
 
+    // FormType is optional (4th field) - supports both old 3-field and new 4-field format
+    if (fields.size() >= 4) {
+        outMetadata.formTypeName = fields[3];
+    }
+
     return true;
 }
 
 bool EntryMetadata::IsEmpty() const
 {
+    // FormType doesn't count as "real" metadata - it's a fallback identifier
     return editorId.empty() && displayName.empty() && meshName.empty();
+}
+
+bool EntryMetadata::IsCompletelyEmpty() const
+{
+    return editorId.empty() && displayName.empty() && meshName.empty() && formTypeName.empty();
 }
 
 void EntryMetadata::MergeFrom(const EntryMetadata& other)
@@ -80,6 +91,9 @@ void EntryMetadata::MergeFrom(const EntryMetadata& other)
     }
     if (meshName.empty() && !other.meshName.empty()) {
         meshName = other.meshName;
+    }
+    if (formTypeName.empty() && !other.formTypeName.empty()) {
+        formTypeName = other.formTypeName;
     }
 }
 

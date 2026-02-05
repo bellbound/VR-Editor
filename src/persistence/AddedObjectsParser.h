@@ -25,6 +25,7 @@ struct AddedObjectEntry {
     std::string editorId;            // Editor ID of the base object
     std::string displayName;         // Display name if available
     std::string meshName;            // Mesh/model name
+    std::string formTypeName;        // Form type code (e.g., "LIGH", "STAT") - fallback when other metadata unavailable
 
     // Convert to INI line format
     std::string ToIniLine() const;

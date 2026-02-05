@@ -11,26 +11,29 @@ namespace Persistence {
 // Used for generating and parsing comment lines above INI entries
 //
 // Comment Format (pipe-separated, constant field count):
-// ; EditorId|DisplayName|MeshPath
+// ; EditorId|DisplayName|MeshPath|FormType
 //
 // Examples:
-// ; Barrel01|Barrel|Clutter\Barrel01.NIF       (all fields populated)
-// ; |Barrel|Clutter\Barrel01.NIF               (no editor ID)
-// ; Barrel01||Clutter\Barrel01.NIF             (no display name)
-// ; ||Clutter\Barrel01.NIF                     (only mesh)
-// ; ||                                          (no metadata)
+// ; Barrel01|Barrel|Clutter\Barrel01.NIF|      (all fields, no formType needed)
+// ; |Barrel|Clutter\Barrel01.NIF|              (no editor ID)
+// ; Barrel01||Clutter\Barrel01.NIF|            (no display name)
+// ; ||Clutter\Barrel01.NIF|                    (only mesh)
+// ; |||LIGH                                    (light with no other metadata)
+// ; RiftenLight01|||LIGH                       (light with editorId)
 //
 // Field indices:
 // 0 = EditorId
 // 1 = DisplayName (no quotes)
 // 2 = MeshPath
+// 3 = FormType (e.g., "LIGH", "STAT", "ACTI" - only shown when other fields empty)
 struct EntryMetadata {
     std::string editorId;
     std::string displayName;
     std::string meshName;
+    std::string formTypeName;    // Form type code (e.g., "LIGH", "STAT")
 
     // Generate comment line in the standard format
-    // Returns "; EditorId|DisplayName|MeshPath"
+    // Returns "; EditorId|DisplayName|MeshPath|FormType"
     std::string ToCommentLine() const;
 
     // Parse metadata from a comment line
@@ -38,8 +41,11 @@ struct EntryMetadata {
     // The line should start with "; " and contain pipe-separated fields
     static bool ParseFromComment(std::string_view commentLine, EntryMetadata& outMetadata);
 
-    // Check if all metadata fields are empty
+    // Check if all metadata fields are empty (excludes formType from check)
     bool IsEmpty() const;
+
+    // Check if completely empty including formType
+    bool IsCompletelyEmpty() const;
 
     // Merge metadata from another source, only filling in empty fields
     // Useful when combining parsed entries with runtime data

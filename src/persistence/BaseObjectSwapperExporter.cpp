@@ -175,17 +175,15 @@ void BaseObjectSwapperExporter::PopulateEntryMetadata(BOSTransformEntry& entry)
                 if (modelPath && modelPath[0] != '\0') {
                     entry.meshName = modelPath;
                 }
-            } else {
-                spdlog::debug("BaseObjectSwapperExporter: {} base object {} is not a TESModel (FormType: {})",
-                    entry.formKeyString,
-                    baseObj->GetFormEditorID() ? baseObj->GetFormEditorID() : "unknown",
-                    RE::FormTypeToString(baseObj->GetFormType()));
             }
+
+            // Get form type as fallback identifier (useful for LIGH, etc. that don't have meshes)
+            entry.formTypeName = RE::FormTypeToString(baseObj->GetFormType());
         }
     }
 
-    spdlog::trace("BaseObjectSwapperExporter: Metadata for {}: editorId='{}', name='{}', mesh='{}', plugin='{}'",
-        entry.formKeyString, entry.editorId, entry.displayName, entry.meshName, entry.GetPluginName());
+    spdlog::trace("BaseObjectSwapperExporter: Metadata for {}: editorId='{}', name='{}', mesh='{}', formType='{}', plugin='{}'",
+        entry.formKeyString, entry.editorId, entry.displayName, entry.meshName, entry.formTypeName, entry.GetPluginName());
 }
 
 RE::NiPoint3 BaseObjectSwapperExporter::MatrixToEulerDegrees(const RE::NiMatrix3& matrix)

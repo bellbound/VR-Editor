@@ -206,8 +206,11 @@ void AddedObjectsExporter::PopulateEntryMetadata(AddedObjectEntry& entry)
         }
     }
 
-    spdlog::trace("AddedObjectsExporter: Metadata for {}: editorId='{}', name='{}', mesh='{}'",
-        entry.baseFormString, entry.editorId, entry.displayName, entry.meshName);
+    // Get form type as fallback identifier (useful for LIGH, etc. that don't have meshes)
+    entry.formTypeName = RE::FormTypeToString(baseForm->GetFormType());
+
+    spdlog::trace("AddedObjectsExporter: Metadata for {}: editorId='{}', name='{}', mesh='{}', formType='{}'",
+        entry.baseFormString, entry.editorId, entry.displayName, entry.meshName, entry.formTypeName);
 }
 
 std::unordered_map<std::string, std::pair<std::string, std::vector<AddedObjectEntry>>>

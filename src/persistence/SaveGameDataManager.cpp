@@ -103,6 +103,7 @@ void SaveGameDataManager::OnSave(SKSE::SerializationInterface* intfc)
             return a.second.saveData.timestamp > b.second.saveData.timestamp;
         });
 
+    size_t entriesToSave = sortedEntries.size();
 
 
     // Write entry count

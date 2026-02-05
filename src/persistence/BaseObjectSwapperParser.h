@@ -31,6 +31,7 @@ struct BOSTransformEntry {
     std::string editorId;            // Editor ID of the reference (e.g., "WhiterunDragonStatue01")
     std::string displayName;         // Display name if available (e.g., "Dragon Statue")
     std::string meshName;            // Mesh/model name (e.g., "architecture/whiterun/wrdragonstatue01.nif")
+    std::string formTypeName;        // Form type code (e.g., "LIGH", "STAT") - fallback when other metadata unavailable
     bool isDeleted = false;          // True if this is a "deleted" reference (uses Initially Disabled flag)
 
     // Convert to BOS INI line format

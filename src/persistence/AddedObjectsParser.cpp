@@ -64,6 +64,7 @@ void AddedObjectEntry::ApplyMetadataFromComment(std::string_view commentLine)
         if (editorId.empty()) editorId = metadata.editorId;
         if (displayName.empty()) displayName = metadata.displayName;
         if (meshName.empty()) meshName = metadata.meshName;
+        if (formTypeName.empty()) formTypeName = metadata.formTypeName;
     }
 }
 
@@ -73,6 +74,7 @@ EntryMetadata AddedObjectEntry::GetMetadata() const
     metadata.editorId = editorId;
     metadata.displayName = displayName;
     metadata.meshName = meshName;
+    metadata.formTypeName = formTypeName;
     return metadata;
 }
 
@@ -81,6 +83,7 @@ void AddedObjectEntry::SetMetadata(const EntryMetadata& metadata)
     editorId = metadata.editorId;
     displayName = metadata.displayName;
     meshName = metadata.meshName;
+    formTypeName = metadata.formTypeName;
 }
 
 std::string AddedObjectEntry::GetPluginName() const
@@ -359,11 +362,8 @@ bool AddedObjectsParser::WriteIniFile(const std::filesystem::path& filePath,
         file << "\n";
 
         for (const auto& entry : mergedEntries) {
-            // Write comment with metadata (only if not completely empty)
-            EntryMetadata meta = entry.GetMetadata();
-            if (!meta.IsEmpty()) {
-                file << entry.ToCommentLine() << "\n";
-            }
+            // Always write comment line for consistency (enables metadata preservation on merge)
+            file << entry.ToCommentLine() << "\n";
             file << entry.ToIniLine() << "\n";
             file << "\n";
         }
