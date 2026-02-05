@@ -52,31 +52,44 @@ std::string BOSTransformEntry::ToIniLine() const
 
 std::string BOSTransformEntry::ToCommentLine() const
 {
-    std::ostringstream ss;
-    ss << "; ";
+    // Use unified pipe-separated format: ; EditorId|DisplayName|MeshPath
+    EntryMetadata metadata;
+    metadata.editorId = editorId;
+    metadata.displayName = displayName;
+    metadata.meshName = meshName;
+    return metadata.ToCommentLine();
+}
 
-    // Add editor ID if available
-    if (!editorId.empty()) {
-        ss << editorId;
+void BOSTransformEntry::ApplyMetadataFromComment(std::string_view commentLine)
+{
+    EntryMetadata metadata;
+    if (EntryMetadata::ParseFromComment(commentLine, metadata)) {
+        // Only fill in empty fields (don't overwrite existing data)
+        if (editorId.empty()) editorId = metadata.editorId;
+        if (displayName.empty()) displayName = metadata.displayName;
+        if (meshName.empty()) meshName = metadata.meshName;
     }
+}
 
-    // Add display name if available and different from editor ID
-    if (!displayName.empty() && displayName != editorId) {
-        if (!editorId.empty()) {
-            ss << " - ";
-        }
-        ss << "\"" << displayName << "\"";
-    }
+EntryMetadata BOSTransformEntry::GetMetadata() const
+{
+    EntryMetadata metadata;
+    metadata.editorId = editorId;
+    metadata.displayName = displayName;
+    metadata.meshName = meshName;
+    return metadata;
+}
 
-    // Add mesh name if available
-    if (!meshName.empty()) {
-        if (!editorId.empty() || !displayName.empty()) {
-            ss << " | ";
-        }
-        ss << meshName;
-    }
+void BOSTransformEntry::SetMetadata(const EntryMetadata& metadata)
+{
+    editorId = metadata.editorId;
+    displayName = metadata.displayName;
+    meshName = metadata.meshName;
+}
 
-    return ss.str();
+std::string BOSTransformEntry::GetPluginName() const
+{
+    return ExtractPluginFromFormKey(formKeyString);
 }
 
 std::optional<BOSTransformEntry> BOSTransformEntry::FromIniLine(std::string_view line)
@@ -146,6 +159,7 @@ std::vector<BOSTransformEntry> BaseObjectSwapperParser::ParseIniFile(
     }
 
     std::string line;
+    std::string lastComment;  // Track the comment line preceding each entry
     bool inTransformsSection = false;
 
     while (std::getline(file, line)) {
@@ -153,7 +167,18 @@ std::vector<BOSTransformEntry> BaseObjectSwapperParser::ParseIniFile(
         line.erase(0, line.find_first_not_of(" \t\r\n"));
         line.erase(line.find_last_not_of(" \t\r\n") + 1);
 
-        if (line.empty() || line[0] == ';' || line[0] == '#') {
+        if (line.empty()) {
+            // Empty line resets comment tracking
+            lastComment.clear();
+            continue;
+        }
+
+        // Track comments - they may contain metadata for the next entry
+        if (line[0] == ';' || line[0] == '#') {
+            // Check if this looks like a metadata comment (contains pipes)
+            if (line.find('|') != std::string::npos) {
+                lastComment = line;
+            }
             continue;
         }
 
@@ -161,6 +186,7 @@ std::vector<BOSTransformEntry> BaseObjectSwapperParser::ParseIniFile(
         if (line[0] == '[') {
             // Check if this is [Transforms] section (with optional location filter)
             inTransformsSection = (line.find("[Transforms") == 0);
+            lastComment.clear();
             continue;
         }
 
@@ -168,8 +194,13 @@ std::vector<BOSTransformEntry> BaseObjectSwapperParser::ParseIniFile(
         if (inTransformsSection) {
             auto entry = BOSTransformEntry::FromIniLine(line);
             if (entry) {
+                // Apply metadata from the preceding comment line if present
+                if (!lastComment.empty()) {
+                    entry->ApplyMetadataFromComment(lastComment);
+                }
                 entries.push_back(std::move(*entry));
             }
+            lastComment.clear();
         }
     }
 
@@ -255,24 +286,38 @@ bool BaseObjectSwapperParser::WriteIniFile(const std::filesystem::path& filePath
                 filePath.filename().string());
         }
 
-        for (const auto& entry : existingEntries) {
+        for (auto& entry : existingEntries) {
+            mergedEntries[entry.formKeyString] = std::move(entry);
+        }
+    }
+
+    // Smart merge: add/update with new entries, preserving existing metadata when new is empty
+    for (const auto& entry : entries) {
+        auto it = mergedEntries.find(entry.formKeyString);
+        if (it != mergedEntries.end()) {
+            // Entry exists - merge metadata (preserve existing if new is empty)
+            BOSTransformEntry merged = entry;
+            EntryMetadata existingMeta = it->second.GetMetadata();
+            EntryMetadata newMeta = merged.GetMetadata();
+            newMeta.MergeFrom(existingMeta);  // Fill empty fields from existing
+            merged.SetMetadata(newMeta);
+            mergedEntries[entry.formKeyString] = std::move(merged);
+        } else {
+            // New entry
             mergedEntries[entry.formKeyString] = entry;
         }
     }
 
-    // Overwrite/add new entries
-    for (const auto& entry : entries) {
-        mergedEntries[entry.formKeyString] = entry;
-    }
-
-    // Collect unique plugin names and separate moved vs deleted entries
+    // Collect unique plugin names from formKeyStrings and separate moved vs deleted entries
     std::set<std::string> pluginNames;
     std::vector<const BOSTransformEntry*> movedEntries;
     std::vector<const BOSTransformEntry*> deletedEntries;
 
     for (const auto& [key, entry] : mergedEntries) {
-        if (!entry.pluginName.empty()) {
-            pluginNames.insert(entry.pluginName);
+        // Extract plugin name directly from formKeyString
+        std::string plugin = entry.GetPluginName();
+        if (!plugin.empty()) {
+            pluginNames.insert(plugin);
         }
 
         if (entry.isDeleted) {
@@ -314,8 +359,11 @@ bool BaseObjectSwapperParser::WriteIniFile(const std::filesystem::path& filePath
     file << "\n";
 
     for (const auto* entry : movedEntries) {
-        // Write comment with editor ID and name
-        file << entry->ToCommentLine() << "\n";
+        // Write comment with metadata (only if not completely empty)
+        EntryMetadata meta = entry->GetMetadata();
+        if (!meta.IsEmpty()) {
+            file << entry->ToCommentLine() << "\n";
+        }
         file << entry->ToIniLine() << "\n";
         file << "\n";
     }
@@ -330,8 +378,11 @@ bool BaseObjectSwapperParser::WriteIniFile(const std::filesystem::path& filePath
         file << "\n";
 
         for (const auto* entry : deletedEntries) {
-            // Write comment with editor ID and name
-            file << entry->ToCommentLine() << "\n";
+            // Write comment with metadata (only if not completely empty)
+            EntryMetadata meta = entry->GetMetadata();
+            if (!meta.IsEmpty()) {
+                file << entry->ToCommentLine() << "\n";
+            }
             file << entry->ToIniLine() << "\n";
             file << "\n";
         }

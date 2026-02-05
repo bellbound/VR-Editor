@@ -48,31 +48,44 @@ std::string AddedObjectEntry::ToIniLine() const
 
 std::string AddedObjectEntry::ToCommentLine() const
 {
-    std::ostringstream ss;
-    ss << "; ";
+    // Use unified pipe-separated format: ; EditorId|DisplayName|MeshPath
+    EntryMetadata metadata;
+    metadata.editorId = editorId;
+    metadata.displayName = displayName;
+    metadata.meshName = meshName;
+    return metadata.ToCommentLine();
+}
 
-    // Add editor ID if available
-    if (!editorId.empty()) {
-        ss << editorId;
+void AddedObjectEntry::ApplyMetadataFromComment(std::string_view commentLine)
+{
+    EntryMetadata metadata;
+    if (EntryMetadata::ParseFromComment(commentLine, metadata)) {
+        // Only fill in empty fields (don't overwrite existing data)
+        if (editorId.empty()) editorId = metadata.editorId;
+        if (displayName.empty()) displayName = metadata.displayName;
+        if (meshName.empty()) meshName = metadata.meshName;
     }
+}
 
-    // Add display name if available and different from editor ID
-    if (!displayName.empty() && displayName != editorId) {
-        if (!editorId.empty()) {
-            ss << " - ";
-        }
-        ss << "\"" << displayName << "\"";
-    }
+EntryMetadata AddedObjectEntry::GetMetadata() const
+{
+    EntryMetadata metadata;
+    metadata.editorId = editorId;
+    metadata.displayName = displayName;
+    metadata.meshName = meshName;
+    return metadata;
+}
 
-    // Add mesh name if available
-    if (!meshName.empty()) {
-        if (!editorId.empty() || !displayName.empty()) {
-            ss << " | ";
-        }
-        ss << meshName;
-    }
+void AddedObjectEntry::SetMetadata(const EntryMetadata& metadata)
+{
+    editorId = metadata.editorId;
+    displayName = metadata.displayName;
+    meshName = metadata.meshName;
+}
 
-    return ss.str();
+std::string AddedObjectEntry::GetPluginName() const
+{
+    return ExtractPluginFromFormKey(baseFormString);
 }
 
 std::optional<AddedObjectEntry> AddedObjectEntry::FromIniLine(std::string_view line)
@@ -145,6 +158,7 @@ AddedObjectsFileData AddedObjectsParser::ParseIniFile(const std::filesystem::pat
     }
 
     std::string line;
+    std::string lastComment;  // Track the comment line preceding each entry
     bool inAddedObjectsSection = false;
 
     while (std::getline(file, line)) {
@@ -153,6 +167,8 @@ AddedObjectsFileData AddedObjectsParser::ParseIniFile(const std::filesystem::pat
         line.erase(line.find_last_not_of(" \t\r\n") + 1);
 
         if (line.empty()) {
+            // Empty line resets comment tracking
+            lastComment.clear();
             continue;
         }
 
@@ -168,8 +184,12 @@ AddedObjectsFileData AddedObjectsParser::ParseIniFile(const std::filesystem::pat
             continue;
         }
 
-        // Skip other comments
+        // Track comments - they may contain metadata for the next entry
         if (line[0] == ';' || line[0] == '#') {
+            // Check if this looks like a metadata comment (contains pipes)
+            if (line.find('|') != std::string::npos) {
+                lastComment = line;
+            }
             continue;
         }
 
@@ -177,6 +197,7 @@ AddedObjectsFileData AddedObjectsParser::ParseIniFile(const std::filesystem::pat
         if (line[0] == '[') {
             // Check if this is [AddedObjects] section
             inAddedObjectsSection = (line.find("[AddedObjects]") == 0);
+            lastComment.clear();
             continue;
         }
 
@@ -184,8 +205,13 @@ AddedObjectsFileData AddedObjectsParser::ParseIniFile(const std::filesystem::pat
         if (inAddedObjectsSection) {
             auto entry = AddedObjectEntry::FromIniLine(line);
             if (entry) {
+                // Apply metadata from the preceding comment line if present
+                if (!lastComment.empty()) {
+                    entry->ApplyMetadataFromComment(lastComment);
+                }
                 data.entries.push_back(std::move(*entry));
             }
+            lastComment.clear();
         }
     }
 
@@ -276,13 +302,18 @@ bool AddedObjectsParser::WriteIniFile(const std::filesystem::path& filePath,
         mergedEntries.push_back(std::move(entry));
     }
 
-    // Add/update with new entries
+    // Smart merge: add/update with new entries, preserving existing metadata when new is empty
     for (const auto& entry : entries) {
         std::string key = positionKey(entry);
         auto it = positionToIndex.find(key);
         if (it != positionToIndex.end()) {
-            // Update existing
-            mergedEntries[it->second] = entry;
+            // Entry exists - merge metadata (preserve existing if new is empty)
+            AddedObjectEntry merged = entry;
+            EntryMetadata existingMeta = mergedEntries[it->second].GetMetadata();
+            EntryMetadata newMeta = merged.GetMetadata();
+            newMeta.MergeFrom(existingMeta);  // Fill empty fields from existing
+            merged.SetMetadata(newMeta);
+            mergedEntries[it->second] = std::move(merged);
         } else {
             // Add new
             positionToIndex[key] = mergedEntries.size();
@@ -329,10 +360,10 @@ bool AddedObjectsParser::WriteIniFile(const std::filesystem::path& filePath,
         file << "\n";
 
         for (const auto& entry : mergedEntries) {
-            // Write comment with metadata
-            std::string comment = entry.ToCommentLine();
-            if (comment.length() > 2) {  // More than just "; "
-                file << comment << "\n";
+            // Write comment with metadata (only if not completely empty)
+            EntryMetadata meta = entry.GetMetadata();
+            if (!meta.IsEmpty()) {
+                file << entry.ToCommentLine() << "\n";
             }
             file << entry.ToIniLine() << "\n";
             file << "\n";

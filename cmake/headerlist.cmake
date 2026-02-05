@@ -45,6 +45,7 @@ set(headers ${headers}
     src/interfaces/higgsinterface001.h
     src/interfaces/ThreeDUIInterface001.h
     src/persistence/FormKeyUtil.h
+    src/persistence/EntryMetadata.h
     src/persistence/ChangedObjectRegistry.h
     src/persistence/SaveGameDataManager.h
     src/persistence/BaseObjectSwapperParser.h

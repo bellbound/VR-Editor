@@ -122,11 +122,8 @@ BOSTransformEntry BaseObjectSwapperExporter::TransformToBOSEntry(
 
 void BaseObjectSwapperExporter::PopulateEntryMetadata(BOSTransformEntry& entry)
 {
-    // Parse the form key to get plugin name
-    auto parsed = FormKeyUtil::ParseFormKey(entry.formKeyString);
-    if (parsed) {
-        entry.pluginName = parsed->pluginName;
-    }
+    // Note: Plugin name is extracted from formKeyString dynamically via GetPluginName()
+    // No need to store it separately
 
     // Try to resolve to runtime FormID and get reference info
     RE::FormID runtimeFormId = FormKeyUtil::ResolveToRuntimeFormID(entry.formKeyString);
@@ -188,7 +185,7 @@ void BaseObjectSwapperExporter::PopulateEntryMetadata(BOSTransformEntry& entry)
     }
 
     spdlog::trace("BaseObjectSwapperExporter: Metadata for {}: editorId='{}', name='{}', mesh='{}', plugin='{}'",
-        entry.formKeyString, entry.editorId, entry.displayName, entry.meshName, entry.pluginName);
+        entry.formKeyString, entry.editorId, entry.displayName, entry.meshName, entry.GetPluginName());
 }
 
 RE::NiPoint3 BaseObjectSwapperExporter::MatrixToEulerDegrees(const RE::NiMatrix3& matrix)

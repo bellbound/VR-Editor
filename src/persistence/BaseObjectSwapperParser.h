@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EntryMetadata.h"
 #include <RE/N/NiTransform.h>
 #include <string>
 #include <vector>
@@ -16,6 +17,9 @@ constexpr uint32_t INITIALLY_DISABLED_FLAG = 0x00000800;
 
 // Represents a single transform entry in a BOS INI file
 // Format: origRefID|posA(x,y,z),rotA(rx,ry,rz),scaleA(s)|100
+//
+// Comment format (above each entry):
+// ; EditorId|DisplayName|MeshPath
 struct BOSTransformEntry {
     std::string formKeyString;       // "0x10C0E3~Skyrim.esm"
     RE::NiPoint3 position;           // Absolute position
@@ -23,20 +27,34 @@ struct BOSTransformEntry {
     float scale = 1.0f;              // Absolute scale
 
     // Metadata for comments (not serialized to INI line itself)
+    // Uses shared EntryMetadata format for parsing/generation
     std::string editorId;            // Editor ID of the reference (e.g., "WhiterunDragonStatue01")
     std::string displayName;         // Display name if available (e.g., "Dragon Statue")
     std::string meshName;            // Mesh/model name (e.g., "architecture/whiterun/wrdragonstatue01.nif")
-    std::string pluginName;          // Source plugin (e.g., "Skyrim.esm")
     bool isDeleted = false;          // True if this is a "deleted" reference (uses Initially Disabled flag)
 
     // Convert to BOS INI line format
     std::string ToIniLine() const;
 
     // Generate a comment line describing this entry
+    // Uses unified pipe-separated format: ; EditorId|DisplayName|MeshPath
     std::string ToCommentLine() const;
 
     // Parse from BOS INI line (returns nullopt if invalid)
+    // Also extracts plugin name from formKeyString
     static std::optional<BOSTransformEntry> FromIniLine(std::string_view line);
+
+    // Apply metadata from a parsed comment line
+    void ApplyMetadataFromComment(std::string_view commentLine);
+
+    // Get metadata as EntryMetadata struct (for unified handling)
+    EntryMetadata GetMetadata() const;
+
+    // Set metadata from EntryMetadata struct
+    void SetMetadata(const EntryMetadata& metadata);
+
+    // Get plugin name extracted from formKeyString
+    std::string GetPluginName() const;
 };
 
 // Represents all entries for a single cell's INI file

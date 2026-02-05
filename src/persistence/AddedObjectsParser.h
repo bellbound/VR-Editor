@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EntryMetadata.h"
 #include <RE/N/NiTransform.h>
 #include <string>
 #include <vector>
@@ -10,6 +11,9 @@ namespace Persistence {
 
 // Represents a single object entry in an AddedObjects INI file
 // Format: baseForm|posA(x,y,z),rotA(rx,ry,rz),scaleA(s)
+//
+// Comment format (above each entry):
+// ; EditorId|DisplayName|MeshPath
 struct AddedObjectEntry {
     std::string baseFormString;      // EditorID or FormKey (0xID~Plugin) of base object
     RE::NiPoint3 position;           // Absolute position
@@ -17,6 +21,7 @@ struct AddedObjectEntry {
     float scale = 1.0f;              // Absolute scale
 
     // Metadata for comments (not serialized to INI line itself)
+    // Uses shared EntryMetadata format for parsing/generation
     std::string editorId;            // Editor ID of the base object
     std::string displayName;         // Display name if available
     std::string meshName;            // Mesh/model name
@@ -25,10 +30,23 @@ struct AddedObjectEntry {
     std::string ToIniLine() const;
 
     // Generate a comment line describing this entry
+    // Uses unified pipe-separated format: ; EditorId|DisplayName|MeshPath
     std::string ToCommentLine() const;
 
     // Parse from INI line (returns nullopt if invalid)
     static std::optional<AddedObjectEntry> FromIniLine(std::string_view line);
+
+    // Apply metadata from a parsed comment line
+    void ApplyMetadataFromComment(std::string_view commentLine);
+
+    // Get metadata as EntryMetadata struct (for unified handling)
+    EntryMetadata GetMetadata() const;
+
+    // Set metadata from EntryMetadata struct
+    void SetMetadata(const EntryMetadata& metadata);
+
+    // Get plugin name extracted from baseFormString (if it's a FormKey)
+    std::string GetPluginName() const;
 };
 
 // Represents all data for a single cell's AddedObjects INI file

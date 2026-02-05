@@ -45,6 +45,7 @@ set(sources ${sources}
     src/interfaces/higgsinterface001.cpp
     src/interfaces/ThreeDUIInterface001.cpp
     src/persistence/FormKeyUtil.cpp
+    src/persistence/EntryMetadata.cpp
     src/persistence/ChangedObjectRegistry.cpp
     src/persistence/SaveGameDataManager.cpp
     src/persistence/BaseObjectSwapperParser.cpp
