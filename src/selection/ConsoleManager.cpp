@@ -5,6 +5,7 @@
 #include "../log.h"
 
 #include <RE/C/Console.h>
+#include <RE/U/UI.h>
 
 namespace Selection {
 
@@ -18,10 +19,17 @@ void ConsoleManager::MayConsolePrid(RE::TESObjectREFR* ref)
         return;
     }
 
-    // Get console singleton and set the selected reference
-    auto* console = RE::Console::GetSingleton();
+    // Get console menu through UI system
+    auto* ui = RE::UI::GetSingleton();
+    if (!ui) {
+        spdlog::warn("ConsoleManager: UI singleton not available");
+        return;
+    }
+
+    auto* console = ui->GetMenu<RE::Console>(RE::Console::MENU_NAME).get();
     if (!console) {
-        spdlog::warn("ConsoleManager: Console singleton not available");
+        // Console menu not currently registered - this is normal if console was never opened
+        spdlog::trace("ConsoleManager: Console menu not available");
         return;
     }
 
