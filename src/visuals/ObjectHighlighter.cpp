@@ -1,6 +1,7 @@
 #include "ObjectHighlighter.h"
 #include "../FrameCallbackDispatcher.h"
 #include "../IFrameUpdateListener.h"
+#include "../selection/ObjectFilter.h"
 #include "../log.h"
 
 namespace ObjectHighlighter {
@@ -164,6 +165,12 @@ bool ApplyEffectToRef(RE::TESObjectREFR* ref, HighlightType type) {
 bool Highlight(RE::TESObjectREFR* ref, HighlightType type) {
     if (!ref) {
         spdlog::warn("ObjectHighlighter: Cannot highlight null reference");
+        return false;
+    }
+
+    // Check if object passes the selection filter
+    if (!Selection::ObjectFilter::ShouldProcess(ref)) {
+        spdlog::trace("ObjectHighlighter: {:08X} filtered out by ObjectFilter", ref->GetFormID());
         return false;
     }
 

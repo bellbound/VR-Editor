@@ -2,6 +2,7 @@
 #include "../FrameCallbackDispatcher.h"
 #include "../selection/SphereHoverStateManager.h"
 #include "../selection/SelectionState.h"
+#include "../selection/ObjectFilter.h"
 #include "../util/VRNodes.h"
 #include "../util/Raycast.h"
 #include "../visuals/RaycastRenderer.h"
@@ -291,6 +292,11 @@ void SphereSelectionController::ScanObjectsInSphere(const RE::NiPoint3& center, 
 
         // Check if selectable
         if (!IsSelectable(ref)) {
+            return RE::BSContainer::ForEachResult::kContinue;
+        }
+
+        // Check if object passes the selection filter
+        if (!Selection::ObjectFilter::ShouldProcess(ref)) {
             return RE::BSContainer::ForEachResult::kContinue;
         }
 

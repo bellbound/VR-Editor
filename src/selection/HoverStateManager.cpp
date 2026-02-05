@@ -1,5 +1,6 @@
 #include "HoverStateManager.h"
 #include "SelectionState.h"
+#include "ObjectFilter.h"
 #include "../visuals/ObjectHighlighter.h"
 
 namespace Selection {
@@ -12,6 +13,11 @@ HoverStateManager* HoverStateManager::GetSingleton()
 
 void HoverStateManager::SetPendingHover(RE::TESObjectREFR* ref)
 {
+    // Filter out objects that shouldn't be processed (treat as null)
+    if (ref && !ObjectFilter::ShouldProcess(ref)) {
+        ref = nullptr;
+    }
+
     if (m_pendingRef == ref) {
         // Same object, debounce timer continues in Update()
         return;
@@ -24,11 +30,16 @@ void HoverStateManager::SetPendingHover(RE::TESObjectREFR* ref)
 
 void HoverStateManager::SetPendingHoverWithRetention(RE::TESObjectREFR* primaryHit, const std::vector<RE::TESObjectREFR*>& retentionHits)
 {
-    // Helper to check if an object is in the retention hits
+    // Filter primary hit (treat filtered objects as null)
+    if (primaryHit && !ObjectFilter::ShouldProcess(primaryHit)) {
+        primaryHit = nullptr;
+    }
+
+    // Helper to check if an object is in the retention hits (only considers objects that pass filter)
     auto isInRetentionHits = [&retentionHits](RE::TESObjectREFR* ref) -> bool {
         if (!ref) return false;
         for (auto* hit : retentionHits) {
-            if (hit == ref) return true;
+            if (hit == ref && ObjectFilter::ShouldProcess(hit)) return true;
         }
         return false;
     };

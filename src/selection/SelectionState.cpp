@@ -1,5 +1,6 @@
 #include "SelectionState.h"
 #include "ConsoleManager.h"
+#include "ObjectFilter.h"
 #include "../visuals/ObjectHighlighter.h"
 #include "../actions/ActionHistoryRepository.h"
 #include "../ui/SelectionMenu.h"
@@ -100,6 +101,12 @@ void SelectionState::RemoveHighlight(RE::TESObjectREFR* ref)
 
 void SelectionState::SetSingleSelection(RE::TESObjectREFR* ref)
 {
+    // Check if object passes the selection filter (null is allowed for clearing)
+    if (ref && !ObjectFilter::ShouldProcess(ref)) {
+        spdlog::trace("SelectionState: {:08X} filtered out by ObjectFilter", ref->GetFormID());
+        return;
+    }
+
     std::vector<SelectionInfo> oldSelection = m_selection;
 
     // Toggle behavior: if clicking the only selected object, deselect it
@@ -132,6 +139,12 @@ void SelectionState::SetSingleSelection(RE::TESObjectREFR* ref)
 void SelectionState::AddToSelection(RE::TESObjectREFR* ref)
 {
     if (!ref) {
+        return;
+    }
+
+    // Check if object passes the selection filter
+    if (!ObjectFilter::ShouldProcess(ref)) {
+        spdlog::trace("SelectionState: {:08X} filtered out by ObjectFilter", ref->GetFormID());
         return;
     }
 
@@ -180,6 +193,12 @@ void SelectionState::RemoveFromSelection(RE::TESObjectREFR* ref)
 void SelectionState::ToggleSelection(RE::TESObjectREFR* ref)
 {
     if (!ref) {
+        return;
+    }
+
+    // Check if object passes the selection filter
+    if (!ObjectFilter::ShouldProcess(ref)) {
+        spdlog::trace("SelectionState: {:08X} filtered out by ObjectFilter", ref->GetFormID());
         return;
     }
 
