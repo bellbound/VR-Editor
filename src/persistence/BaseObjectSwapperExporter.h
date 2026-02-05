@@ -57,8 +57,13 @@ public:
     static void PopulateEntryMetadata(BOSTransformEntry& entry);
 
     // Convert NiMatrix3 rotation to Euler angles (degrees)
-    // Returns (pitch, yaw, roll) in degrees
+    // Returns (pitch, yaw, roll) in degrees, normalized to -180 to +180 range
     static RE::NiPoint3 MatrixToEulerDegrees(const RE::NiMatrix3& matrix);
+
+    // Normalize angle to -180 to +180 degree range
+    // Ensures angles stay within BOS's ±360° clamp range
+    static float NormalizeAngleDegrees(float angle);
+    static RE::NiPoint3 NormalizeAnglesDegrees(const RE::NiPoint3& angles);
 
 private:
     BaseObjectSwapperExporter() = default;

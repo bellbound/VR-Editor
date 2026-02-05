@@ -92,13 +92,14 @@ BOSTransformEntry BaseObjectSwapperExporter::TransformToBOSEntry(
         entry.position = ref->GetPosition();
 
         // Convert game data angles (radians) to degrees for INI
+        // Normalize to -180 to +180 range to stay within BOS's ±360° clamp
         constexpr float RAD_TO_DEG = 180.0f / 3.14159265358979323846f;
         RE::NiPoint3 angleRad = ref->GetAngle();
-        entry.rotation = RE::NiPoint3(
+        entry.rotation = NormalizeAnglesDegrees(RE::NiPoint3(
             angleRad.x * RAD_TO_DEG,
             angleRad.y * RAD_TO_DEG,
             angleRad.z * RAD_TO_DEG
-        );
+        ));
 
         // Use scale from game data
         entry.scale = ref->GetScale();
@@ -199,10 +200,32 @@ RE::NiPoint3 BaseObjectSwapperExporter::MatrixToEulerDegrees(const RE::NiMatrix3
     // Convert radians to degrees
     constexpr float RAD_TO_DEG = 180.0f / 3.14159265358979323846f;
 
-    return RE::NiPoint3(
+    return NormalizeAnglesDegrees(RE::NiPoint3(
         eulerRadians.x * RAD_TO_DEG,
         eulerRadians.y * RAD_TO_DEG,
         eulerRadians.z * RAD_TO_DEG
+    ));
+}
+
+float BaseObjectSwapperExporter::NormalizeAngleDegrees(float angle)
+{
+    // Wrap angle to -180 to +180 range
+    // BOS clamps to ±360°, but normalized angles are more predictable
+    angle = std::fmod(angle, 360.0f);
+    if (angle > 180.0f) {
+        angle -= 360.0f;
+    } else if (angle < -180.0f) {
+        angle += 360.0f;
+    }
+    return angle;
+}
+
+RE::NiPoint3 BaseObjectSwapperExporter::NormalizeAnglesDegrees(const RE::NiPoint3& angles)
+{
+    return RE::NiPoint3(
+        NormalizeAngleDegrees(angles.x),
+        NormalizeAngleDegrees(angles.y),
+        NormalizeAngleDegrees(angles.z)
     );
 }
 
