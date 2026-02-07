@@ -73,6 +73,19 @@ namespace Options {
     /// Default: 24
     constexpr std::string_view kRotationSnappingStops = "Grid:iRotationSnappingStops";
 
+    // =========================================================================
+    // [Persistence] Section - File saving options
+    // =========================================================================
+
+    /// When enabled, creates separate INI files per cell (current behavior).
+    /// When disabled, creates single consolidated files:
+    /// - Data/VREditor_SWAP.ini (for BOS transforms)
+    /// - Data/VREditor_SWAP_latest.ini (session changes)
+    /// - Data/SKSE/Plugins/VREditor/VREditor_AddedObjects.ini (spawned objects)
+    /// Type: bool (stored as int 0/1)
+    /// Default: false (0) - single file mode
+    constexpr std::string_view kSavePerCell = "Persistence:bSavePerCell";
+
 } // namespace Options
 
 /// Initialize all config options with their default values.

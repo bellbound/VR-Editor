@@ -1,6 +1,8 @@
 #include "BaseObjectSwapperExporter.h"
 #include "FormKeyUtil.h"
 #include "../log.h"
+#include "../config/ConfigStorage.h"
+#include "../config/ConfigOptions.h"
 #include <RE/T/TESObjectREFR.h>
 #include <RE/T/TESForm.h>
 #include <RE/T/TESModel.h>
@@ -47,26 +49,58 @@ size_t BaseObjectSwapperExporter::ExportEntries(
     auto groupedEntries = GroupEntriesByCell(entries);
 
     auto* parser = BaseObjectSwapperParser::GetSingleton();
+    auto* config = Config::ConfigStorage::GetSingleton();
+    bool perCellMode = config->GetInt(Config::Options::kSavePerCell, 0) != 0;
+
     size_t totalExported = 0;
 
-    for (const auto& [cellFormKey, cellData] : groupedEntries) {
-        const auto& [cellEditorId, bosEntries] = cellData;
+    if (perCellMode) {
+        // Per-cell mode: write separate files for each cell
+        for (const auto& [cellFormKey, cellData] : groupedEntries) {
+            const auto& [cellEditorId, bosEntries] = cellData;
 
-        std::string iniFileName = BaseObjectSwapperParser::BuildIniFileName(cellEditorId, cellFormKey);
-        auto dataPath = parser->GetDataFolderPath();
-        auto filePath = dataPath / iniFileName;
+            std::string iniFileName = BaseObjectSwapperParser::BuildIniFileName(cellEditorId, cellFormKey);
+            auto dataPath = parser->GetDataFolderPath();
+            auto filePath = dataPath / iniFileName;
 
-        if (parser->WriteIniFile(filePath, bosEntries)) {
+            if (parser->WriteIniFile(filePath, bosEntries)) {
+                totalExported += bosEntries.size();
+                spdlog::info("BaseObjectSwapperExporter: Wrote {} entries to {}",
+                    bosEntries.size(), iniFileName);
+            } else {
+                spdlog::error("BaseObjectSwapperExporter: Failed to write {}", iniFileName);
+            }
+        }
+
+        spdlog::info("BaseObjectSwapperExporter: Exported {} entries to {} INI files (per-cell mode)",
+            totalExported, groupedEntries.size());
+    } else {
+        // Single-file mode: write all cells to one consolidated file
+        std::vector<CellSectionData> cellSections;
+
+        for (const auto& [cellFormKey, cellData] : groupedEntries) {
+            const auto& [cellEditorId, bosEntries] = cellData;
+
+            CellSectionData section;
+            section.cellFormKey = cellFormKey;
+            section.cellEditorId = cellEditorId;
+            section.entries = bosEntries;
+
+            cellSections.push_back(std::move(section));
             totalExported += bosEntries.size();
-            spdlog::info("BaseObjectSwapperExporter: Wrote {} entries to {}",
-                bosEntries.size(), iniFileName);
+        }
+
+        auto dataPath = parser->GetDataFolderPath();
+        auto filePath = dataPath / "VREditor_SWAP.ini";
+
+        if (parser->WriteConsolidatedIniFile(filePath, cellSections)) {
+            spdlog::info("BaseObjectSwapperExporter: Exported {} entries from {} cells to consolidated file (single-file mode)",
+                totalExported, cellSections.size());
         } else {
-            spdlog::error("BaseObjectSwapperExporter: Failed to write {}", iniFileName);
+            spdlog::error("BaseObjectSwapperExporter: Failed to write consolidated file");
+            totalExported = 0;
         }
     }
-
-    spdlog::info("BaseObjectSwapperExporter: Exported {} entries to {} INI files",
-        totalExported, groupedEntries.size());
 
     return totalExported;
 }

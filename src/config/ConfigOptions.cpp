@@ -64,9 +64,16 @@ void RegisterConfigOptions()
     // Default: 24
     config->RegisterIntOption(Options::kRotationSnappingStops, 24);
 
+    // =========================================================================
+    // [Persistence] Section - File saving options
+    // =========================================================================
 
+    // When enabled, creates separate INI files per cell.
+    // When disabled, creates single consolidated files.
+    // Default: false (0) - single file mode is cleaner for users
+    config->RegisterIntOption(Options::kSavePerCell, 0);
 
-    spdlog::info("ConfigOptions: Registered {} options", 8);
+    spdlog::info("ConfigOptions: Registered {} options", 9);
 }
 
 } // namespace Config

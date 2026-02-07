@@ -66,6 +66,13 @@ struct BOSCellData {
     std::vector<BOSTransformEntry> entries;
 };
 
+// Data for writing a cell section (used for both single-file and per-cell modes)
+struct CellSectionData {
+    std::string cellFormKey;          // Cell's FormKey (e.g., "0x3C~Skyrim.esm")
+    std::string cellEditorId;         // Cell's EditorID if available
+    std::vector<BOSTransformEntry> entries;  // All entries for this cell
+};
+
 // BaseObjectSwapperParser: Handles reading/writing BOS _SWAP.ini files
 //
 // Purpose:
@@ -74,7 +81,8 @@ struct BOSCellData {
 // - Validate entries before writing
 //
 // File Format:
-// - Files are named: VREditor_{cellId}_SWAP.ini
+// - Per-cell mode: VREditor_{cellId}_SWAP.ini per cell
+// - Single-file mode: VREditor_SWAP.ini for all cells
 // - Located in Data folder
 // - Contains [Transforms] section with absolute position/rotation entries
 class BaseObjectSwapperParser {
@@ -106,6 +114,31 @@ public:
     // Creates the file if it doesn't exist
     bool WriteCellData(const BOSCellData& data) const;
 
+    // Write multiple cells to a single consolidated INI file
+    // Used when per-cell mode is disabled
+    // File path is the consolidated file (e.g., Data/VREditor_SWAP.ini)
+    bool WriteConsolidatedIniFile(const std::filesystem::path& filePath,
+                                   const std::vector<CellSectionData>& cellSections) const;
+
+    // ========== Content Generation Helpers ==========
+
+    // Write the file header (title, description)
+    // Does NOT write plugin list - that's per-cell in consolidated mode
+    static void WriteFileHeader(std::ostream& out);
+
+    // Write a cell section with header and all entries
+    // cellName: The display name for the cell (editor ID or formkey)
+    // cellFormKey: The stable FormKey for the cell
+    // entries: The entries to write
+    // plugins: Set of plugin names referenced by entries
+    // out: The output stream to write to
+    static void WriteCellSection(std::ostream& out,
+                                  const std::string& cellName,
+                                  const std::string& cellFormKey,
+                                  const std::vector<const BOSTransformEntry*>& movedEntries,
+                                  const std::vector<const BOSTransformEntry*>& deletedEntries,
+                                  const std::set<std::string>& plugins);
+
     // ========== Utilities ==========
 
     // Get the Data folder path (where _SWAP.ini files live for BOS)
@@ -120,22 +153,23 @@ public:
     // Uses cellEditorId if available, otherwise uses sanitized cellFormKey
     static std::string BuildIniFileName(std::string_view cellEditorId, std::string_view cellFormKey);
 
-    // Build session INI filename for a cell (the _SWAP_session.ini file we write to)
+    // Build latest INI filename for a cell (the _SWAP_latest.ini file we write to during gameplay)
     // This file is not locked by BOS since it doesn't know about it
-    static std::string BuildSessionIniFileName(std::string_view cellEditorId, std::string_view cellFormKey);
+    // Located in Data/ folder alongside the main _SWAP.ini files
+    static std::string BuildLatestIniFileName(std::string_view cellEditorId, std::string_view cellFormKey);
 
-    // Get the session file path corresponding to a swap file path
-    // e.g., "VREditor_Whiterun_SWAP.ini" -> "VREditor_Whiterun_SWAP_session.ini"
-    static std::filesystem::path GetSessionFilePath(const std::filesystem::path& swapFilePath);
+    // Get the latest file path corresponding to a swap file path
+    // Both files are in Data/ folder: "VREditor_Whiterun_SWAP.ini" -> "VREditor_Whiterun_SWAP_latest.ini"
+    static std::filesystem::path GetLatestFilePath(const std::filesystem::path& swapFilePath);
 
-    // Get the swap file path corresponding to a session file path
-    // e.g., "VREditor_Whiterun_SWAP_session.ini" -> "VREditor_Whiterun_SWAP.ini"
-    static std::filesystem::path GetSwapFilePath(const std::filesystem::path& sessionFilePath);
+    // Get the swap file path corresponding to a latest file path
+    // e.g., "VREditor_Whiterun_SWAP_latest.ini" -> "VREditor_Whiterun_SWAP.ini"
+    static std::filesystem::path GetSwapFilePath(const std::filesystem::path& latestFilePath);
 
-    // Apply any pending session files to their corresponding swap files
+    // Apply any pending latest files to their corresponding swap files
     // Should be called on game start BEFORE BOS loads its INI files
-    // This copies _session.ini contents to _SWAP.ini so BOS sees our changes
-    void ApplyPendingSessionFiles() const;
+    // This copies _SWAP_latest.ini contents to _SWAP.ini so BOS sees our changes
+    void ApplyPendingLatestFiles() const;
 
     // Sanitize a string for use in filename
     static std::string SanitizeForFilename(std::string_view input);

@@ -58,6 +58,13 @@ struct AddedObjectsFileData {
     std::vector<AddedObjectEntry> entries;
 };
 
+// Data for writing a cell section (used for consolidated mode)
+struct AddedObjectsCellSection {
+    std::string cellFormKey;          // Cell's FormKey
+    std::string cellEditorId;         // Cell's EditorID if available
+    std::vector<AddedObjectEntry> entries;
+};
+
 // AddedObjectsParser: Handles reading/writing _AddedObjects.ini files
 //
 // Purpose:
@@ -102,6 +109,12 @@ public:
     // Write file data to its INI file
     // Creates the file if it doesn't exist
     bool WriteFileData(const AddedObjectsFileData& data) const;
+
+    // Write multiple cells to a single consolidated INI file
+    // Used when per-cell mode is disabled
+    // File path should be Data/SKSE/Plugins/VREditor/VREditor_AddedObjects.ini
+    bool WriteConsolidatedIniFile(const std::filesystem::path& filePath,
+                                   const std::vector<AddedObjectsCellSection>& cellSections) const;
 
     // ========== Utilities ==========
 

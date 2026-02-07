@@ -1,6 +1,8 @@
 #include "AddedObjectsExporter.h"
 #include "FormKeyUtil.h"
 #include "../log.h"
+#include "../config/ConfigStorage.h"
+#include "../config/ConfigOptions.h"
 #include <RE/T/TESObjectREFR.h>
 #include <RE/T/TESForm.h>
 #include <RE/T/TESModel.h>
@@ -71,26 +73,58 @@ size_t AddedObjectsExporter::ExportEntries(
     auto groupedEntries = GroupEntriesByCell(entries);
 
     auto* parser = AddedObjectsParser::GetSingleton();
+    auto* config = Config::ConfigStorage::GetSingleton();
+    bool perCellMode = config->GetInt(Config::Options::kSavePerCell, 0) != 0;
+
     size_t totalExported = 0;
 
-    for (const auto& [cellFormKey, cellData] : groupedEntries) {
-        const auto& [cellEditorId, addedEntries] = cellData;
+    if (perCellMode) {
+        // Per-cell mode: write separate files for each cell
+        for (const auto& [cellFormKey, cellData] : groupedEntries) {
+            const auto& [cellEditorId, addedEntries] = cellData;
 
-        std::string iniFileName = AddedObjectsParser::BuildIniFileName(cellEditorId, cellFormKey);
-        auto vrEditorPath = parser->GetVREditorFolderPath();
-        auto filePath = vrEditorPath / iniFileName;
+            std::string iniFileName = AddedObjectsParser::BuildIniFileName(cellEditorId, cellFormKey);
+            auto vrEditorPath = parser->GetVREditorFolderPath();
+            auto filePath = vrEditorPath / iniFileName;
 
-        if (parser->WriteIniFile(filePath, cellFormKey, cellEditorId, addedEntries)) {
+            if (parser->WriteIniFile(filePath, cellFormKey, cellEditorId, addedEntries)) {
+                totalExported += addedEntries.size();
+                spdlog::info("AddedObjectsExporter: Wrote {} entries to {}",
+                    addedEntries.size(), iniFileName);
+            } else {
+                spdlog::error("AddedObjectsExporter: Failed to write {}", iniFileName);
+            }
+        }
+
+        spdlog::info("AddedObjectsExporter: Exported {} entries to {} INI files (per-cell mode)",
+            totalExported, groupedEntries.size());
+    } else {
+        // Single-file mode: write all cells to one consolidated file
+        std::vector<AddedObjectsCellSection> cellSections;
+
+        for (const auto& [cellFormKey, cellData] : groupedEntries) {
+            const auto& [cellEditorId, addedEntries] = cellData;
+
+            AddedObjectsCellSection section;
+            section.cellFormKey = cellFormKey;
+            section.cellEditorId = cellEditorId;
+            section.entries = addedEntries;
+
+            cellSections.push_back(std::move(section));
             totalExported += addedEntries.size();
-            spdlog::info("AddedObjectsExporter: Wrote {} entries to {}",
-                addedEntries.size(), iniFileName);
+        }
+
+        auto vrEditorPath = parser->GetVREditorFolderPath();
+        auto filePath = vrEditorPath / "VREditor_AddedObjects.ini";
+
+        if (parser->WriteConsolidatedIniFile(filePath, cellSections)) {
+            spdlog::info("AddedObjectsExporter: Exported {} entries from {} cells to consolidated file (single-file mode)",
+                totalExported, cellSections.size());
         } else {
-            spdlog::error("AddedObjectsExporter: Failed to write {}", iniFileName);
+            spdlog::error("AddedObjectsExporter: Failed to write consolidated file");
+            totalExported = 0;
         }
     }
-
-    spdlog::info("AddedObjectsExporter: Exported {} entries to {} INI files",
-        totalExported, groupedEntries.size());
 
     return totalExported;
 }
