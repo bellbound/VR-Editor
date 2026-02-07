@@ -1,9 +1,12 @@
 #include "AddedObjectsParser.h"
 #include "FormKeyUtil.h"
 #include "../log.h"
+#include <fmt/format.h>
+#ifndef TEST_ENVIRONMENT
 #include <RE/T/TESDataHandler.h>
 #include <RE/T/TESForm.h>
 #include <RE/T/TESModel.h>
+#endif
 #include <fstream>
 #include <sstream>
 #include <regex>

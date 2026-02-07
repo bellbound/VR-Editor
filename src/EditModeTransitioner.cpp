@@ -1,5 +1,6 @@
 #include "EditModeTransitioner.h"
 #include "EditModeManager.h"
+#include "SystemInitializer.h"
 #include "TutorialManager.h"
 #include "FrameCallbackDispatcher.h"
 #include "util/Raycast.h"
@@ -168,6 +169,10 @@ bool EditModeTransitioner::OnTriggerPressed(bool isLeft, bool isReleased, vr::EV
                 }
 
                 spdlog::info("EditModeTransitioner: Entering edit mode via grab-grab");
+
+                // Initialize on-demand systems on first edit mode entry
+                // This defers initialization of menus, grab controllers, etc. until actually needed
+                SystemInitializer::GetSingleton()->MayInitializeOnFirstUse();
 
                 editModeManager->Enter();
 

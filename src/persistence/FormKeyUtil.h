@@ -1,8 +1,6 @@
 #pragma once
 
-#include <RE/T/TESObjectREFR.h>
-#include <RE/T/TESForm.h>
-#include <RE/T/TESDataHandler.h>
+#include "PersistenceTypes.h"
 #include <string>
 #include <optional>
 

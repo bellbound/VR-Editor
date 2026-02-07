@@ -1,5 +1,6 @@
 #include "VRBuilderNativePapyrusAPI.h"
 #include "../EditModeManager.h"
+#include "../SystemInitializer.h"
 #include "../util/PositioningUtil.h"
 #include "../visuals/ObjectHighlighter.h"
 #include "../ui/SelectionMenu.h"
@@ -70,8 +71,8 @@ void ResetCurrentCellEdits(RE::StaticFunctionTag*)
 
     RE::DebugNotification(fmt::format("VR Editor: Resetting {}...", cellName).c_str());
 
-    auto* registry = Persistence::ChangedObjectRegistry::GetSingleton();
-    auto entries = registry->ExtractEntriesForCell(cellFormKey);
+    auto& registry = SystemInitializer::GetSingleton()->GetChangedObjectRegistry();
+    auto entries = registry.ExtractEntriesForCell(cellFormKey);
 
     size_t resetCount = 0;
     std::vector<std::string> createdFormKeys;
@@ -158,14 +159,14 @@ void ResetCurrentCellEdits(RE::StaticFunctionTag*)
         }
     }
 
-    // Remove BOS swap/session files for this cell
+    // Remove BOS swap/latest files for this cell
     {
         auto* bos = Persistence::BaseObjectSwapperParser::GetSingleton();
         auto swapFileName = Persistence::BaseObjectSwapperParser::BuildIniFileName(cellEditorId, cellFormKey);
-        auto sessionFileName = Persistence::BaseObjectSwapperParser::BuildSessionIniFileName(cellEditorId, cellFormKey);
+        auto latestFileName = Persistence::BaseObjectSwapperParser::BuildLatestIniFileName(cellEditorId, cellFormKey);
 
         auto swapPath = bos->GetDataFolderPath() / swapFileName;
-        auto sessionPath = bos->GetVREditorFolderPath() / sessionFileName;
+        auto latestPath = bos->GetDataFolderPath() / latestFileName;
 
         std::error_code ec;
         if (std::filesystem::exists(swapPath)) {
@@ -174,10 +175,10 @@ void ResetCurrentCellEdits(RE::StaticFunctionTag*)
                 spdlog::warn("VRBuilderNativePapyrusAPI: Failed to delete {}", swapPath.string());
             }
         }
-        if (std::filesystem::exists(sessionPath)) {
-            std::filesystem::remove(sessionPath, ec);
+        if (std::filesystem::exists(latestPath)) {
+            std::filesystem::remove(latestPath, ec);
             if (ec) {
-                spdlog::warn("VRBuilderNativePapyrusAPI: Failed to delete {}", sessionPath.string());
+                spdlog::warn("VRBuilderNativePapyrusAPI: Failed to delete {}", latestPath.string());
             }
         }
     }

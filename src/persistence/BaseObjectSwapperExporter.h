@@ -35,7 +35,7 @@ public:
     // Export all pending changes to INI files
     // Called during save game
     // Returns number of entries exported
-    size_t ExportPendingChanges();
+    size_t ExportPendingChanges(ChangedObjectRegistry& registry);
 
     // Export a specific set of entries (for testing/manual export)
     // Returns number of entries exported

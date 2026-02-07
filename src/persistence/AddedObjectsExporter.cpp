@@ -3,10 +3,12 @@
 #include "../log.h"
 #include "../config/ConfigStorage.h"
 #include "../config/ConfigOptions.h"
+#ifndef TEST_ENVIRONMENT
 #include <RE/T/TESObjectREFR.h>
 #include <RE/T/TESForm.h>
 #include <RE/T/TESModel.h>
 #include <RE/T/TESObjectCELL.h>
+#endif
 #include <cmath>
 
 namespace Persistence {
@@ -33,10 +35,9 @@ AddedObjectsExporter* AddedObjectsExporter::GetSingleton()
     return &instance;
 }
 
-size_t AddedObjectsExporter::ExportPendingCreatedObjects()
+size_t AddedObjectsExporter::ExportPendingCreatedObjects(ChangedObjectRegistry& registry)
 {
-    auto* registry = ChangedObjectRegistry::GetSingleton();
-    const auto& allEntries = registry->GetAllEntries();
+    const auto& allEntries = registry.GetAllEntries();
 
     // Filter to only created objects
     std::vector<std::pair<std::string, const ChangedObjectRuntimeData*>> createdEntries;
@@ -56,7 +57,7 @@ size_t AddedObjectsExporter::ExportPendingCreatedObjects()
 
     // Clear pending flags for created objects after successful export
     if (exported > 0) {
-        registry->ClearPendingExportFlagsForCreatedObjects();
+        registry.ClearPendingExportFlagsForCreatedObjects();
     }
 
     return exported;

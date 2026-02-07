@@ -16,13 +16,17 @@ namespace Persistence {
 // - Record type: 'IGPV' (InGamePatcherVR)
 // - Version: 1
 // - Content: Array of ChangedObjectSaveGameData entries
+// Forward declaration
+class ChangedObjectRegistry;
+
 class SaveGameDataManager {
 public:
     static SaveGameDataManager* GetSingleton();
 
     // Register with SKSE serialization interface
     // Called during plugin load (SKSEPluginLoad)
-    void Initialize(const SKSE::SerializationInterface* serialization);
+    // registry: The ChangedObjectRegistry instance to use for persistence
+    void Initialize(const SKSE::SerializationInterface* serialization, ChangedObjectRegistry& registry);
 
     // Check if initialized
     bool IsInitialized() const { return m_initialized; }
@@ -56,6 +60,9 @@ private:
     // Safety limits to prevent crashes from corrupted save data
     static constexpr uint32_t kMaxStringLength = 1024;   // Form keys are short (e.g., "0x10C0E3~Skyrim.esm")
     static constexpr uint32_t kMaxEntryCount = 10000;    // Sanity limit for entry count
+
+    // Static registry pointer for SKSE callbacks (set during Initialize)
+    static ChangedObjectRegistry* s_registry;
 
     bool m_initialized = false;
 };

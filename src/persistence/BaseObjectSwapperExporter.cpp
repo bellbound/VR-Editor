@@ -3,11 +3,13 @@
 #include "../log.h"
 #include "../config/ConfigStorage.h"
 #include "../config/ConfigOptions.h"
+#ifndef TEST_ENVIRONMENT
 #include <RE/T/TESObjectREFR.h>
 #include <RE/T/TESForm.h>
 #include <RE/T/TESModel.h>
 #include <RE/T/TESObjectCELL.h>
 #include <RE/E/ExtraTextDisplayData.h>
+#endif
 #include <cmath>
 
 namespace Persistence {
@@ -18,10 +20,9 @@ BaseObjectSwapperExporter* BaseObjectSwapperExporter::GetSingleton()
     return &instance;
 }
 
-size_t BaseObjectSwapperExporter::ExportPendingChanges()
+size_t BaseObjectSwapperExporter::ExportPendingChanges(ChangedObjectRegistry& registry)
 {
-    auto* registry = ChangedObjectRegistry::GetSingleton();
-    auto pendingEntries = registry->GetPendingExportEntries();
+    auto pendingEntries = registry.GetPendingExportEntries();
 
     if (pendingEntries.empty()) {
         spdlog::trace("BaseObjectSwapperExporter: No pending changes to export");
@@ -32,7 +33,7 @@ size_t BaseObjectSwapperExporter::ExportPendingChanges()
 
     // Clear pending flags on success
     if (exported > 0) {
-        registry->ClearPendingExportFlags();
+        registry.ClearPendingExportFlags();
     }
 
     return exported;

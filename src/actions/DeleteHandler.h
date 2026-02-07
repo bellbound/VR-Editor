@@ -4,6 +4,7 @@
 #include "ActionHistoryRepository.h"
 #include "../selection/SelectionState.h"
 #include "../visuals/ObjectHighlighter.h"
+#include "../SystemInitializer.h"
 #include "../persistence/ChangedObjectRegistry.h"
 #include "../persistence/CreatedObjectTracker.h"
 #include "../persistence/FormKeyUtil.h"
@@ -36,7 +37,7 @@ public:
             return false;
         }
 
-        auto* registry = Persistence::ChangedObjectRegistry::GetSingleton();
+        auto& registry = SystemInitializer::GetSingleton()->GetChangedObjectRegistry();
         std::vector<SingleDelete> deletedObjects;
         deletedObjects.reserve(selection.size());
 
@@ -64,7 +65,7 @@ public:
 
             // Register deletion in ChangedObjectRegistry (for persistence/tracking)
             Util::ActionId actionId = Util::UUID::Generate();
-            registry->RegisterDeletedIfNew(info.ref, del.baseFormId, del.transform, actionId);
+            registry.RegisterDeletedIfNew(info.ref, del.baseFormId, del.transform, actionId);
 
             // Unhighlight before deletion (use FormID for physics objects)
             ObjectHighlighter::UnhighlightByFormId(info.formId);
@@ -76,7 +77,7 @@ public:
             // Plugin refs: only disabled, can be re-enabled
             if (isDynamic) {
                 std::string dynamicKey = fmt::format("0x{:08X}~DYNAMIC", info.formId);
-                registry->MarkPendingHardDelete(dynamicKey);
+                registry.MarkPendingHardDelete(dynamicKey);
 
                 // Remove from CreatedObjectTracker so it won't be respawned
                 Persistence::CreatedObjectTracker::GetSingleton()->Remove(info.ref);

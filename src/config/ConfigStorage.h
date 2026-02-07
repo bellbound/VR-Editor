@@ -1,6 +1,8 @@
 #pragma once
 
+#ifndef TEST_ENVIRONMENT
 #include <RE/Skyrim.h>
+#endif
 #include <string>
 #include <string_view>
 #include <vector>

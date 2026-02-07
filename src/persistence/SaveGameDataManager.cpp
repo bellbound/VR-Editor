@@ -12,13 +12,16 @@
 
 namespace Persistence {
 
+// Static registry pointer for SKSE callbacks
+ChangedObjectRegistry* SaveGameDataManager::s_registry = nullptr;
+
 SaveGameDataManager* SaveGameDataManager::GetSingleton()
 {
     static SaveGameDataManager instance;
     return &instance;
 }
 
-void SaveGameDataManager::Initialize(const SKSE::SerializationInterface* serialization)
+void SaveGameDataManager::Initialize(const SKSE::SerializationInterface* serialization, ChangedObjectRegistry& registry)
 {
     if (m_initialized) {
         spdlog::warn("SaveGameDataManager already initialized");
@@ -29,6 +32,9 @@ void SaveGameDataManager::Initialize(const SKSE::SerializationInterface* seriali
         spdlog::error("SaveGameDataManager: SerializationInterface is null");
         return;
     }
+
+    // Store registry pointer for static callbacks
+    s_registry = &registry;
 
     // SKSE returns const interface but callbacks need non-const access
     // This is safe - SKSE's design expects this usage pattern
@@ -56,21 +62,21 @@ void SaveGameDataManager::OnSave(SKSE::SerializationInterface* intfc)
 
     // Export pending changes to Base Object Swapper INI files (repositioned existing refs)
     auto* bosExporter = BaseObjectSwapperExporter::GetSingleton();
-    size_t bosExportedCount = bosExporter->ExportPendingChanges();
+    size_t bosExportedCount = bosExporter->ExportPendingChanges(*s_registry);
     if (bosExportedCount > 0) {
         spdlog::info("SaveGameDataManager: Exported {} entries to BOS INI files", bosExportedCount);
     }
 
     // Export created objects to AddedObjects INI files (dynamically spawned refs)
     auto* addedExporter = AddedObjectsExporter::GetSingleton();
-    size_t addedExportedCount = addedExporter->ExportPendingCreatedObjects();
+    size_t addedExportedCount = addedExporter->ExportPendingCreatedObjects(*s_registry);
     if (addedExportedCount > 0) {
         spdlog::info("SaveGameDataManager: Exported {} entries to AddedObjects INI files", addedExportedCount);
     }
 
     // NOTE: Spriggit export feature removed - using BOS + AddedObjects INI system instead
 
-    auto* registry = ChangedObjectRegistry::GetSingleton();
+    auto* registry = s_registry;
     const auto& entries = registry->GetAllEntries();
 
     if (!intfc->OpenRecord(kRecordType, kDataVersion)) {
@@ -212,7 +218,7 @@ void SaveGameDataManager::OnLoad(SKSE::SerializationInterface* intfc)
     spdlog::info("SaveGameDataManager: Loading changed objects...");
 
     // Clear existing entries before loading
-    auto* registry = ChangedObjectRegistry::GetSingleton();
+    auto* registry = s_registry;
     registry->Clear();
 
     auto* gallery = Gallery::GalleryManager::GetSingleton();
@@ -377,7 +383,7 @@ void SaveGameDataManager::OnRevert(SKSE::SerializationInterface* /*intfc*/)
 {
     spdlog::info("SaveGameDataManager: Reverting (clearing changed objects and gallery)...");
 
-    auto* registry = ChangedObjectRegistry::GetSingleton();
+    auto* registry = s_registry;
     registry->Clear();
 
     auto* gallery = Gallery::GalleryManager::GetSingleton();

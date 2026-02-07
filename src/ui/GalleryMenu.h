@@ -10,6 +10,7 @@
 #include "../actions/UndoRedoController.h"
 #include "../actions/CopyHandler.h"
 #include "../actions/ActionHistoryRepository.h"
+#include "../SystemInitializer.h"
 #include "../persistence/ChangedObjectRegistry.h"
 #include "../persistence/CreatedObjectTracker.h"
 #include "../persistence/FormKeyUtil.h"
@@ -328,7 +329,7 @@ private:
             }
 
             // Register with ChangedObjectRegistry for persistence (INI export)
-            Persistence::ChangedObjectRegistry::GetSingleton()->RegisterCreatedObject(
+            SystemInitializer::GetSingleton()->GetChangedObjectRegistry().RegisterCreatedObject(
                 placed, baseFormId, transform, actionId);
 
             // Register with CreatedObjectTracker for runtime spawning/despawning

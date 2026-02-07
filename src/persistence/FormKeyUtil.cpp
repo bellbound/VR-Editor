@@ -1,7 +1,9 @@
 #include "FormKeyUtil.h"
 #include "../log.h"
+#ifndef TEST_ENVIRONMENT
 #include <RE/T/TESFile.h>
 #include <RE/T/TESDataHandler.h>
+#endif
 #include <fmt/format.h>
 #include <charconv>
 
@@ -15,6 +17,8 @@ std::string FormKeyUtil::BuildFormKey(RE::TESObjectREFR* ref)
     return BuildFormKey(static_cast<RE::TESForm*>(ref));
 }
 
+#ifndef TEST_ENVIRONMENT
+// Full implementation requires TESFile which is only available at runtime
 std::string FormKeyUtil::BuildFormKey(RE::TESForm* form)
 {
     if (!form) {
@@ -34,6 +38,17 @@ std::string FormKeyUtil::BuildFormKey(RE::TESForm* form)
 
     return BuildFormKey(localId, pluginName);
 }
+#else
+// Test stub - just returns a key based on FormID
+std::string FormKeyUtil::BuildFormKey(RE::TESForm* form)
+{
+    if (!form) {
+        return "";
+    }
+    // In tests, we create a DYNAMIC key for any form
+    return fmt::format("0x{:X}~TestPlugin.esp", form->GetFormID() & 0x00FFFFFF);
+}
+#endif
 
 std::string FormKeyUtil::BuildFormKey(RE::FormID localFormId, std::string_view pluginName)
 {
@@ -84,6 +99,7 @@ std::optional<FormKeyUtil::ParsedKey> FormKeyUtil::ParseFormKey(std::string_view
     return ParsedKey{ localFormId, std::string(pluginName) };
 }
 
+#ifndef TEST_ENVIRONMENT
 RE::FormID FormKeyUtil::ResolveToRuntimeFormID(std::string_view keyString)
 {
     auto parsed = ParseFormKey(keyString);
@@ -137,5 +153,23 @@ RE::FormID FormKeyUtil::ResolveToRuntimeFormID(std::string_view keyString)
 
     return runtimeFormId;
 }
+#else
+// Test stub - just returns the local FormID (DYNAMIC) or makes up a runtime ID
+RE::FormID FormKeyUtil::ResolveToRuntimeFormID(std::string_view keyString)
+{
+    auto parsed = ParseFormKey(keyString);
+    if (!parsed) {
+        return 0;
+    }
+
+    // DYNAMIC forms: return as-is
+    if (parsed->pluginName == "DYNAMIC") {
+        return parsed->localFormId;
+    }
+
+    // For testing, just return the local ID with a fake load order index
+    return parsed->localFormId | 0x01000000;
+}
+#endif
 
 } // namespace Persistence

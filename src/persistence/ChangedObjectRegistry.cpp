@@ -1,16 +1,13 @@
 #include "ChangedObjectRegistry.h"
 #include "FormKeyUtil.h"
 #include "../log.h"
+#include <fmt/format.h>
+#ifndef TEST_ENVIRONMENT
 #include <RE/P/PlayerCharacter.h>
 #include <RE/T/TESObjectCELL.h>
+#endif
 
 namespace Persistence {
-
-ChangedObjectRegistry* ChangedObjectRegistry::GetSingleton()
-{
-    static ChangedObjectRegistry instance;
-    return &instance;
-}
 
 void ChangedObjectRegistry::RegisterIfNew(RE::TESObjectREFR* ref,
                                           const RE::NiTransform& originalTransform,
