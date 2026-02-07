@@ -73,16 +73,6 @@ namespace Options {
     /// Default: 24
     constexpr std::string_view kRotationSnappingStops = "Grid:iRotationSnappingStops";
 
-    // =========================================================================
-    // [Persistence] Section - Save/export settings
-    // =========================================================================
-
-    /// Creates spriggit files in your data directory, containing all of your changes,
-    /// that you can apply to your mods esp.
-    /// Type: bool (stored as int 0/1)
-    /// Default: false (0)
-    constexpr std::string_view kCreateSpriggitFiles = "Persistence:bCreateSpriggitFiles";
-
 } // namespace Options
 
 /// Initialize all config options with their default values.

@@ -202,25 +202,6 @@ If you want to share your creations, you have two main options:
 
 ---
 
-### ESP Patching with Spriggit
-
-You can apply edits directly to an ESP.
-
-- Partial Spriggit YAML files are generated per edited cell  
-- You must merge them into your ESP’s Spriggit data manually  
-- Requires a custom script to:
-- Merge cell YAML files  
-- Generate appropriate FormIDs  
-
-Example path: `VREditor\spriggit-partials\Cells\6\8\SolitudeWinkingSkeever - 016A0E_Skyrim.esm\RecordData.partial.yaml`
-
-
-⚠️ You must enable YAML generation in the MCM.
-
-If you need help creating the merge script, just ask.
-
----
-
 ## Thanks & Credits
 
 - **Shizof** — Engine wizardry behind Spell Wheel, which was a great inspiration for this mod. And extra thanks & credits for letting me use the super cool swirling orb thingy effect

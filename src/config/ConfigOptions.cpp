@@ -49,15 +49,6 @@ void RegisterConfigOptions()
     config->RegisterIntOption(Options::kSelectInConsole, 0);
 
     // =========================================================================
-    // [Persistence] Section - Save/export settings
-    // =========================================================================
-
-    // Creates spriggit files in your data directory, containing all of your changes,
-    // that you can apply to your mods esp.
-    // Default: false (0) - don't create files unless explicitly enabled
-    config->RegisterIntOption(Options::kCreateSpriggitFiles, 0);
-
-    // =========================================================================
     // [Grid] Section - Snap-to-grid settings
     // =========================================================================
 
@@ -75,7 +66,7 @@ void RegisterConfigOptions()
 
 
 
-    spdlog::info("ConfigOptions: Registered {} options", 9);
+    spdlog::info("ConfigOptions: Registered {} options", 8);
 }
 
 } // namespace Config

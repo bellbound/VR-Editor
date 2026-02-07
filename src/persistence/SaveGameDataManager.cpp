@@ -3,7 +3,6 @@
 #include "CreatedObjectTracker.h"
 #include "BaseObjectSwapperExporter.h"
 #include "AddedObjectsExporter.h"
-#include "SpriggitExporter.h"
 #include "../config/ConfigStorage.h"
 #include "../config/ConfigOptions.h"
 #include "../gallery/GalleryManager.h"
@@ -69,18 +68,7 @@ void SaveGameDataManager::OnSave(SKSE::SerializationInterface* intfc)
         spdlog::info("SaveGameDataManager: Exported {} entries to AddedObjects INI files", addedExportedCount);
     }
 
-    // Export all changes to Spriggit partial YAML files (for advanced modders)
-    // Only if the user has enabled this feature in MCM
-    bool createSpriggitFiles = Config::ConfigStorage::GetSingleton()->GetInt(
-        Config::Options::kCreateSpriggitFiles, 0) != 0;
-
-    if (createSpriggitFiles) {
-        auto* spriggitExporter = SpriggitExporter::GetSingleton();
-        size_t spriggitExportedCount = spriggitExporter->ExportAllChanges();
-        if (spriggitExportedCount > 0) {
-            spdlog::info("SaveGameDataManager: Exported {} entries to Spriggit partial YAML files", spriggitExportedCount);
-        }
-    }
+    // NOTE: Spriggit export feature removed - using BOS + AddedObjects INI system instead
 
     auto* registry = ChangedObjectRegistry::GetSingleton();
     const auto& entries = registry->GetAllEntries();

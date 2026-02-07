@@ -55,7 +55,6 @@ set(sources ${sources}
     src/persistence/AddedObjectsParser.cpp
     src/persistence/AddedObjectsSpawner.cpp
     src/persistence/AddedObjectsExporter.cpp
-    src/persistence/SpriggitExporter.cpp
     src/persistence/CreatedObjectTracker.cpp
     src/gallery/GalleryManager.cpp
     src/gallery/GalleryPlacementUtil.cpp

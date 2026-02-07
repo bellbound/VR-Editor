@@ -10,7 +10,6 @@
 #include "../persistence/ChangedObjectRegistry.h"
 #include "../persistence/CreatedObjectTracker.h"
 #include "../persistence/FormKeyUtil.h"
-#include "../persistence/SpriggitExporter.h"
 #include "../log.h"
 #include <fmt/format.h>
 #include <RE/P/PlayerCharacter.h>
@@ -183,8 +182,7 @@ void ResetCurrentCellEdits(RE::StaticFunctionTag*)
         }
     }
 
-    // Remove Spriggit partials for this cell
-    Persistence::SpriggitExporter::GetSingleton()->DeleteCellExport(cell, cellFormKey, cellEditorId);
+    // NOTE: Spriggit export feature removed - no partials to clean up
 
     std::string message = fmt::format("VR Editor: Reset {} objects", resetCount);
     if (removedAddedCount > 0) {
