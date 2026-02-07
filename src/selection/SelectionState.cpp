@@ -297,6 +297,10 @@ void SelectionState::RefreshHighlightIfSelected(RE::TESObjectREFR* ref)
     if (!ref) return;
 
     if (IsSelected(ref)) {
+        // Force re-application by removing first, then applying
+        // This handles the case where 3D was destroyed (Disable/Enable) but tracking remained
+        // The new Highlight() will defer if 3D isn't ready yet
+        RemoveHighlight(ref);
         ApplyHighlight(ref);
         spdlog::trace("SelectionState: Refreshed highlight on {:08X}", ref->GetFormID());
     }

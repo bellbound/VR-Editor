@@ -93,7 +93,7 @@ private:
     void PerformCollisionUpdate(RE::TESObjectREFR* ref, const RE::NiTransform& transform);
 
     // Configuration
-    static constexpr std::uint32_t kCheckIntervalFrames = 90;  // Check every 90 frames
+    static constexpr std::uint32_t kCheckIntervalFrames = 200;  // Check every 90 frames
     static constexpr float kCooldownSeconds = 1.0f;            // Wait 1 second after player leaves
 
     std::vector<PendingObject> m_pendingObjects;

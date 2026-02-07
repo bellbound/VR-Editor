@@ -1,6 +1,7 @@
 #include "ChangedObjectRegistry.h"
 #include "FormKeyUtil.h"
 #include "../log.h"
+#include <RE/P/PlayerCharacter.h>
 #include <RE/T/TESObjectCELL.h>
 
 namespace Persistence {
@@ -44,17 +45,42 @@ void ChangedObjectRegistry::RegisterIfNew(RE::TESObjectREFR* ref,
     data.createdThisSession = true;
 
     // Capture cell info while we have access to the loaded reference
+    std::string cellFormKey;
     if (auto* cell = ref->GetParentCell()) {
-        data.saveData.cellFormKey = FormKeyUtil::BuildFormKey(cell);
+        cellFormKey = FormKeyUtil::BuildFormKey(cell);
+        if (cellFormKey.empty()) {
+            // BuildFormKey failed - cell has no source file (common for dynamically-created exterior cells)
+            // Fall back to player's cell, which should be a real persistent cell
+            spdlog::trace("ChangedObjectRegistry: Cell {:08X} for {} is dynamic, trying player cell as fallback",
+                cell->GetFormID(), formKey);
+
+            if (auto* player = RE::PlayerCharacter::GetSingleton()) {
+                if (auto* playerCell = player->GetParentCell()) {
+                    cellFormKey = FormKeyUtil::BuildFormKey(playerCell);
+                    if (!cellFormKey.empty()) {
+                        spdlog::trace("ChangedObjectRegistry: Using player cell {} as fallback for {}",
+                            cellFormKey, formKey);
+                        cell = playerCell;  // Use player's cell for editor ID too
+                    } else {
+                        spdlog::warn("ChangedObjectRegistry: Player cell {:08X} also has no source file",
+                            playerCell->GetFormID());
+                    }
+                }
+            }
+        }
+        data.saveData.cellFormKey = cellFormKey;
         if (const char* editorId = cell->GetFormEditorID(); editorId && editorId[0] != '\0') {
             data.saveData.cellEditorId = editorId;
         }
+    } else {
+        spdlog::warn("ChangedObjectRegistry: {} has no parent cell at registration time!", formKey);
     }
 
+    auto timestamp = data.saveData.timestamp;
     m_entries.emplace(formKey, std::move(data));
 
     spdlog::info("ChangedObjectRegistry: Registered {} (cell: {}, first change: action {}, timestamp: {})",
-        formKey, data.saveData.cellFormKey, actionId.Value(), data.saveData.timestamp);
+        formKey, cellFormKey, actionId.Value(), timestamp);
 }
 
 void ChangedObjectRegistry::RegisterDeletedIfNew(RE::TESObjectREFR* ref,

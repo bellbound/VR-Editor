@@ -1,7 +1,6 @@
 #include "DeferredCollisionUpdateManager.h"
 #include "../FrameCallbackDispatcher.h"
 #include "../selection/SelectionState.h"
-#include "../selection/DelayedHighlightRefreshManager.h"
 #include "../visuals/ObjectHighlighter.h"
 #include "../log.h"
 #include <algorithm>
@@ -375,16 +374,13 @@ void DeferredCollisionUpdateManager::PerformCollisionUpdate(RE::TESObjectREFR* r
 {
     if (!ref) return;
 
-    // Remove highlight before Disable/Enable destroys 3D - let scheduled refresh reapply it
-    ObjectHighlighter::Unhighlight(ref);
-
     // Disable/Enable cycle forces Havok to rebuild collision at new position
     // This is the nuclear option that ensures collision boxes are updated
     ref->Disable();
     ref->Enable(false);  // false = don't reset inventory
 
-    // Schedule delayed highlight refresh after disable/enable destroys the 3D scene graph
-    Selection::DelayedHighlightRefreshManager::GetSingleton()->ScheduleRefresh(ref);
+    // Refresh highlight - ObjectHighlighter will automatically defer if 3D isn't ready yet
+    Selection::SelectionState::GetSingleton()->RefreshHighlightIfSelected(ref);
 
     spdlog::info("DeferredCollisionUpdateManager: Performed Disable/Enable on {:08X}",
         ref->GetFormID());

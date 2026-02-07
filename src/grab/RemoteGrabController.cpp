@@ -5,7 +5,6 @@
 #include "../FrameCallbackDispatcher.h"
 #include "../actions/ActionHistoryRepository.h"
 #include "../selection/SelectionState.h"
-#include "../selection/DelayedHighlightRefreshManager.h"
 #include "../util/VRNodes.h"
 #include "../util/PositioningUtil.h"
 #include "../util/RotationMath.h"
@@ -1072,15 +1071,12 @@ void RemoteGrabController::FinalizePositions()
             spdlog::info("RemoteGrabController: Deferring collision update for {:08X} (player standing on it)",
                 obj.formId);
         } else {
-            // Remove highlight before Disable/Enable destroys 3D - let scheduled refresh reapply it
-            ObjectHighlighter::Unhighlight(obj.ref);
-
             // Disable/Enable cycle forces Havok to rebuild collision at new position
             obj.ref->Disable();
             obj.ref->Enable(false);
 
-            // Schedule delayed highlight refresh after disable/enable destroys the 3D scene graph
-            Selection::DelayedHighlightRefreshManager::GetSingleton()->ScheduleRefresh(obj.ref);
+            // Refresh highlight - ObjectHighlighter will automatically defer if 3D isn't ready yet
+            Selection::SelectionState::GetSingleton()->RefreshHighlightIfSelected(obj.ref);
         }
     }
 }

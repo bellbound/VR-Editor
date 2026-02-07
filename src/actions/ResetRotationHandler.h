@@ -3,7 +3,6 @@
 #include "Action.h"
 #include "ActionHistoryRepository.h"
 #include "../selection/SelectionState.h"
-#include "../selection/DelayedHighlightRefreshManager.h"
 #include "../visuals/ObjectHighlighter.h"
 #include "../log.h"
 #include <vector>
@@ -84,9 +83,9 @@ public:
             spdlog::info("ResetRotationHandler: Reset rotation for {} objects", transforms.size());
         }
 
-        // Schedule delayed highlight refresh
+        // Refresh highlights - ObjectHighlighter will automatically defer if 3D isn't ready yet
         for (const auto& info : selection) {
-            Selection::DelayedHighlightRefreshManager::GetSingleton()->ScheduleRefresh(info.ref);
+            selectionState->RefreshHighlightIfSelected(info.ref);
         }
 
         return true;

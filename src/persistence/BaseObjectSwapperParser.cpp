@@ -488,7 +488,7 @@ std::filesystem::path BaseObjectSwapperParser::GetSessionFilePath(const std::fil
 
 std::filesystem::path BaseObjectSwapperParser::GetSwapFilePath(const std::filesystem::path& sessionFilePath)
 {
-    // Swap files go in Data/ (parent of VREditor/), session files are in Data/VREditor/
+    // Swap files go in Data/, session files are in Data/SKSE/Plugins/VREditor/
     // Convert "VREditor_Location_SWAP_session.ini" to "VREditor_Location_SWAP.ini"
     std::string filename = sessionFilePath.filename().string();
 
@@ -500,8 +500,9 @@ std::filesystem::path BaseObjectSwapperParser::GetSwapFilePath(const std::filesy
         filename = filename.substr(0, filename.size() - sessionSuffix.size()) + "_SWAP.ini";
     }
 
-    // Session file is in Data/VREditor/, swap file goes to Data/ (parent directory)
-    return sessionFilePath.parent_path().parent_path() / filename;
+    // Session file is in Data/SKSE/Plugins/VREditor/, swap file goes to Data/
+    // Need to go up 3 levels: VREditor -> Plugins -> SKSE -> Data
+    return sessionFilePath.parent_path().parent_path().parent_path().parent_path() / filename;
 }
 
 void BaseObjectSwapperParser::ApplyPendingSessionFiles() const

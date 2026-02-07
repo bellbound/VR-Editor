@@ -3,7 +3,6 @@
 #include "Action.h"
 #include "ActionHistoryRepository.h"
 #include "../selection/SelectionState.h"
-#include "../selection/DelayedHighlightRefreshManager.h"
 #include "../visuals/ObjectHighlighter.h"
 #include "../util/Raycast.h"
 #include "../util/PositioningUtil.h"
@@ -130,10 +129,9 @@ public:
             spdlog::info("SnapToGroundHandler: Snapped {} objects to ground", transforms.size());
         }
 
-        // Schedule delayed highlight refresh after disable/enable destroys the 3D scene graph
-        // The delay (2.0s) allows the engine to fully reconstruct the 3D representation
+        // Refresh highlights - ObjectHighlighter will automatically defer if 3D isn't ready yet
         for (const auto& info : selection) {
-            Selection::DelayedHighlightRefreshManager::GetSingleton()->ScheduleRefresh(info.ref);
+            selectionState->RefreshHighlightIfSelected(info.ref);
         }
         return true;
     }

@@ -8,7 +8,6 @@
 #include "../interfaces/ThreeDUIInterface001.h"
 #include "../EditModeManager.h"
 #include "../selection/SelectionState.h"
-#include "../selection/DelayedHighlightRefreshManager.h"
 #include "../actions/UndoRedoController.h"
 #include "../actions/DeleteHandler.h"
 #include "../actions/CopyHandler.h"
