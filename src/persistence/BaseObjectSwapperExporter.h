@@ -17,7 +17,6 @@ namespace Persistence {
 // Session File Strategy:
 // BOS locks _SWAP.ini files when loading them on game start, preventing us from
 // writing to them during gameplay. To work around this:
-// - We write to *_SWAP_session.ini files in Data/VREditor/ (which BOS doesn't know about)
 // - On game start, BEFORE BOS loads, ApplyPendingSessionFiles() copies
 //   session file contents to the corresponding _SWAP.ini files in Data/
 // - This allows our changes to persist even when BOS has files locked

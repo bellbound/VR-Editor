@@ -11,6 +11,8 @@
 namespace Persistence {
 
 // AddedObjectsSpawner: Handles spawning dynamic objects when player enters cells
+// 
+// Important: This is currently UNUSED! Added Items are automatically persistet in the save.  
 //
 // Purpose:
 // - Load and cache all _AddedObjects.ini files on startup
