@@ -68,3 +68,46 @@ if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Release>:/Zi>")
     target_link_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Release>:/DEBUG>" "$<$<CONFIG:Release>:/OPT:REF>" "$<$<CONFIG:Release>:/OPT:ICF>")
 endif()
+
+# =============================================================================
+# Unit Tests
+# =============================================================================
+option(BUILD_TESTS "Build unit tests" ON)
+
+if(BUILD_TESTS)
+    find_package(Catch2 CONFIG REQUIRED)
+    enable_testing()
+
+    # Collect test sources
+    file(GLOB_RECURSE TEST_SOURCES
+        "${CMAKE_SOURCE_DIR}/Tests/*.cpp"
+    )
+
+    # Create test executable
+    add_executable(${PROJECT_NAME}Tests
+        ${TEST_SOURCES}
+    )
+
+    target_compile_features(${PROJECT_NAME}Tests PRIVATE cxx_std_23)
+
+    # Define TEST_ENVIRONMENT to use stubs instead of RE/Skyrim.h
+    target_compile_definitions(${PROJECT_NAME}Tests PRIVATE TEST_ENVIRONMENT)
+
+    target_include_directories(${PROJECT_NAME}Tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/Tests  # For TestStubs.h
+    )
+
+    # Ensure MSVC uses standard conformance mode
+    if(MSVC)
+        target_compile_options(${PROJECT_NAME}Tests PRIVATE /permissive- /Zc:preprocessor)
+    endif()
+
+    target_link_libraries(${PROJECT_NAME}Tests PRIVATE
+        Catch2::Catch2WithMain
+    )
+
+    # Register tests with CTest
+    include(Catch)
+    catch_discover_tests(${PROJECT_NAME}Tests)
+endif()

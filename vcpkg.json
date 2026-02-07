@@ -5,6 +5,7 @@
     "dependencies": [
         "commonlibsse-ng-fork",
         "simpleini",
-        "nlohmann-json"
+        "nlohmann-json",
+        "catch2"
     ]
 }
