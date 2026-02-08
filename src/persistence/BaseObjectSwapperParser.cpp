@@ -213,6 +213,99 @@ std::vector<BOSTransformEntry> BaseObjectSwapperParser::ParseIniFile(
     return entries;
 }
 
+std::unordered_map<std::string, std::pair<std::string, std::vector<BOSTransformEntry>>>
+BaseObjectSwapperParser::ParseConsolidatedIniFile(const std::filesystem::path& filePath) const
+{
+    std::unordered_map<std::string, std::pair<std::string, std::vector<BOSTransformEntry>>> result;
+
+    if (!std::filesystem::exists(filePath)) {
+        return result;
+    }
+
+    std::ifstream file(filePath);
+    if (!file.is_open()) {
+        spdlog::warn("BaseObjectSwapperParser: Failed to open consolidated file {}", filePath.string());
+        return result;
+    }
+
+    std::string line;
+    std::string lastComment;
+    std::string currentCellFormKey;
+    std::string currentCellEditorId;
+    bool inTransformsSection = false;
+
+    while (std::getline(file, line)) {
+        // Trim whitespace
+        line.erase(0, line.find_first_not_of(" \t\r\n"));
+        line.erase(line.find_last_not_of(" \t\r\n") + 1);
+
+        if (line.empty()) {
+            lastComment.clear();
+            continue;
+        }
+
+        // Parse comments for cell information
+        if (line[0] == ';' || line[0] == '#') {
+            // Check for cell header: "; Cell: CellName"
+            if (line.starts_with("; Cell:") && !line.starts_with("; Cell FormKey:")) {
+                size_t colonPos = line.find(':', 6);
+                if (colonPos != std::string::npos) {
+                    currentCellEditorId = line.substr(colonPos + 1);
+                    currentCellEditorId.erase(0, currentCellEditorId.find_first_not_of(" \t"));
+                    currentCellEditorId.erase(currentCellEditorId.find_last_not_of(" \t") + 1);
+                }
+            }
+            // Check for cell FormKey: "; Cell FormKey: 0xID~Plugin"
+            else if (line.starts_with("; Cell FormKey:")) {
+                size_t colonPos = line.find(':', 14);
+                if (colonPos != std::string::npos) {
+                    currentCellFormKey = line.substr(colonPos + 1);
+                    currentCellFormKey.erase(0, currentCellFormKey.find_first_not_of(" \t"));
+                    currentCellFormKey.erase(currentCellFormKey.find_last_not_of(" \t") + 1);
+                }
+            }
+            // Check for metadata comment (contains pipes)
+            else if (line.find('|') != std::string::npos) {
+                lastComment = line;
+            }
+            continue;
+        }
+
+        // Check for section header
+        if (line[0] == '[') {
+            inTransformsSection = (line.find("[Transforms") == 0);
+            lastComment.clear();
+            continue;
+        }
+
+        // Only parse lines in [Transforms] section
+        if (inTransformsSection && !currentCellFormKey.empty()) {
+            auto entry = BOSTransformEntry::FromIniLine(line);
+            if (entry) {
+                if (!lastComment.empty()) {
+                    entry->ApplyMetadataFromComment(lastComment);
+                }
+                // Add to the current cell's entries
+                auto& cellData = result[currentCellFormKey];
+                if (cellData.first.empty()) {
+                    cellData.first = currentCellEditorId;
+                }
+                cellData.second.push_back(std::move(*entry));
+            }
+            lastComment.clear();
+        }
+    }
+
+    size_t totalEntries = 0;
+    for (const auto& [key, data] : result) {
+        totalEntries += data.second.size();
+    }
+    spdlog::trace("BaseObjectSwapperParser: Parsed {} entries across {} cells from consolidated file {}",
+        totalEntries, result.size(), filePath.filename().string());
+
+    return result;
+}
+
 bool BaseObjectSwapperParser::ContainsReference(const std::filesystem::path& filePath,
                                                  const std::string& formKeyString) const
 {
@@ -453,27 +546,36 @@ bool BaseObjectSwapperParser::WriteConsolidatedIniFile(
 
     auto latestFilePath = GetLatestFilePath(filePath);
 
-    // Read existing entries from latest or swap file and organize by cell
-    std::unordered_map<std::string, std::unordered_map<std::string, BOSTransformEntry>> existingEntriesByCell;
+    // Read existing entries from latest or swap file, organized by cell
+    // Uses ParseConsolidatedIniFile which extracts cell info from comments
+    std::unordered_map<std::string, std::pair<std::string, std::vector<BOSTransformEntry>>> existingCellData;
 
     if (std::filesystem::exists(latestFilePath)) {
-        auto existingEntries = ParseIniFile(latestFilePath);
-        // Note: In consolidated mode, we need to parse cell info from comments
-        // For now, existing entries go to a "Unknown" cell if we can't determine
-        for (auto& entry : existingEntries) {
-            existingEntriesByCell[""][""][entry.formKeyString] = std::move(entry);
-        }
+        existingCellData = ParseConsolidatedIniFile(latestFilePath);
+        spdlog::trace("BaseObjectSwapperParser: Loaded existing consolidated file with {} cells",
+            existingCellData.size());
     } else if (std::filesystem::exists(filePath)) {
-        auto existingEntries = ParseIniFile(filePath);
-        for (auto& entry : existingEntries) {
-            existingEntriesByCell[""][entry.formKeyString] = std::move(entry);
+        existingCellData = ParseConsolidatedIniFile(filePath);
+    }
+
+    // Build a map of existing entries by cell for efficient lookup
+    std::unordered_map<std::string, std::unordered_map<std::string, BOSTransformEntry>> existingEntriesByCell;
+    for (auto& [cellKey, cellPair] : existingCellData) {
+        for (auto& entry : cellPair.second) {
+            existingEntriesByCell[cellKey][entry.formKeyString] = std::move(entry);
         }
     }
+
+    // Track which cells we're updating
+    std::set<std::string> updatedCells;
 
     // Prepare final cell data
     std::vector<CellSectionData> finalSections;
 
+    // First, process cells with new changes
     for (const auto& section : cellSections) {
+        updatedCells.insert(section.cellFormKey);
+
         CellSectionData finalSection;
         finalSection.cellFormKey = section.cellFormKey;
         finalSection.cellEditorId = section.cellEditorId;
@@ -481,7 +583,7 @@ bool BaseObjectSwapperParser::WriteConsolidatedIniFile(
         // Merge with existing entries for this cell
         std::unordered_map<std::string, BOSTransformEntry> mergedEntries;
 
-        // Start with existing entries
+        // Start with existing entries for this cell
         auto existingIt = existingEntriesByCell.find(section.cellFormKey);
         if (existingIt != existingEntriesByCell.end()) {
             for (auto& [key, entry] : existingIt->second) {
@@ -511,6 +613,19 @@ bool BaseObjectSwapperParser::WriteConsolidatedIniFile(
 
         if (!finalSection.entries.empty()) {
             finalSections.push_back(std::move(finalSection));
+        }
+    }
+
+    // Then, preserve cells from existing file that we didn't update
+    for (auto& [cellKey, cellPair] : existingCellData) {
+        if (updatedCells.find(cellKey) == updatedCells.end() && !cellPair.second.empty()) {
+            CellSectionData preservedSection;
+            preservedSection.cellFormKey = cellKey;
+            preservedSection.cellEditorId = cellPair.first;
+            preservedSection.entries = std::move(cellPair.second);
+            finalSections.push_back(std::move(preservedSection));
+            spdlog::trace("BaseObjectSwapperParser: Preserving {} entries from cell {}",
+                preservedSection.entries.size(), cellKey);
         }
     }
 

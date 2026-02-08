@@ -185,6 +185,12 @@ private:
     ~BaseObjectSwapperParser() = default;
     BaseObjectSwapperParser(const BaseObjectSwapperParser&) = delete;
     BaseObjectSwapperParser& operator=(const BaseObjectSwapperParser&) = delete;
+
+    // Parse a consolidated INI file, returning entries grouped by cell FormKey
+    // Reads "; Cell FormKey:" comments to determine cell associations
+    // Returns map of cellFormKey -> (cellEditorId, entries)
+    std::unordered_map<std::string, std::pair<std::string, std::vector<BOSTransformEntry>>>
+    ParseConsolidatedIniFile(const std::filesystem::path& filePath) const;
 };
 
 } // namespace Persistence
