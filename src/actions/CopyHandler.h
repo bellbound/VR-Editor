@@ -4,7 +4,6 @@
 #include "ActionHistoryRepository.h"
 #include "../selection/SelectionState.h"
 #include "../visuals/ObjectHighlighter.h"
-#include "../SystemInitializer.h"
 #include "../persistence/ChangedObjectRegistry.h"
 #include "../persistence/CreatedObjectTracker.h"
 #include "../persistence/FormKeyUtil.h"
@@ -58,7 +57,7 @@ public:
         // Generate action ID upfront for registry registration
         Util::ActionId actionId = Util::UUID::Generate();
 
-        auto& registry = SystemInitializer::GetSingleton()->GetChangedObjectRegistry();
+        auto* registry = Persistence::ChangedObjectRegistry::GetSingleton();
 
         for (const auto& info : selection) {
             if (!info.ref) continue;
@@ -123,7 +122,7 @@ public:
             }
 
             // Register with ChangedObjectRegistry as a created object (for INI export)
-            registry.RegisterCreatedObject(newRef.get(), baseObj->GetFormID(), transform, actionId);
+            registry->RegisterCreatedObject(newRef.get(), baseObj->GetFormID(), transform, actionId);
 
             // Register with CreatedObjectTracker for runtime spawning/despawning
             auto* cell = info.ref->GetParentCell();

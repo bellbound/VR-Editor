@@ -17,14 +17,12 @@ UndoRedoController* UndoRedoController::GetSingleton()
     return &instance;
 }
 
-void UndoRedoController::Initialize(Persistence::ChangedObjectRegistry& registry)
+void UndoRedoController::Initialize()
 {
     if (m_initialized) {
         spdlog::warn("UndoRedoController already initialized");
         return;
     }
-
-    m_registry = &registry;
 
     // Register for frame callbacks (only in edit mode)
     FrameCallbackDispatcher::GetSingleton()->Register(this, true);
@@ -211,9 +209,7 @@ void UndoRedoController::PerformUndo()
         // If this was the first change to an object (and created this session),
         // the registry entry will be removed
         Util::ActionId undoneId = GetActionId(*action);
-        if (m_registry) {
-            m_registry->OnActionUndone(undoneId);
-        }
+        Persistence::ChangedObjectRegistry::GetSingleton()->OnActionUndone(undoneId);
 
         // Check if this action is user-visible
         bool isUserVisible = IsUserVisibleAction(*action);

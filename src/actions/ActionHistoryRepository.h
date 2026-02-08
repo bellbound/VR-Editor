@@ -5,10 +5,6 @@
 #include <optional>
 #include <vector>
 
-namespace Persistence {
-    class ChangedObjectRegistry;
-}
-
 namespace Actions {
 
 // ActionHistoryRepository: Stores action history for undo/redo functionality
@@ -27,13 +23,6 @@ namespace Actions {
 class ActionHistoryRepository {
 public:
     static ActionHistoryRepository* GetSingleton();
-
-    // Initialize with dependencies
-    // Must be called before using any other methods
-    void Initialize(Persistence::ChangedObjectRegistry& registry);
-
-    // Check if initialized
-    bool IsInitialized() const { return m_initialized; }
 
     // Add an action to history
     // Returns the ActionId for future reference
@@ -138,10 +127,6 @@ private:
 
     // Clears redo stack when new actions are performed
     void ClearRedoStack();
-
-    // Dependencies
-    Persistence::ChangedObjectRegistry* m_registry = nullptr;
-    bool m_initialized = false;
 
     // Map of ActionId -> ActionData, ordered by ActionId (chronological)
     std::map<Util::ActionId, ActionData> m_actions;

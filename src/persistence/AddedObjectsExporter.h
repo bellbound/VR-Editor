@@ -33,7 +33,7 @@ public:
     // Export all pending created objects to INI files
     // Called during save game
     // Returns number of entries exported
-    size_t ExportPendingCreatedObjects(ChangedObjectRegistry& registry);
+    size_t ExportPendingCreatedObjects();
 
     // Export a specific set of created object entries
     // Returns number of entries exported

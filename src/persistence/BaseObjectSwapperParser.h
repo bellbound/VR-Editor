@@ -1,7 +1,7 @@
 #pragma once
 
 #include "EntryMetadata.h"
-#include "PersistenceTypes.h"
+#include <RE/N/NiTransform.h>
 #include <string>
 #include <vector>
 #include <optional>

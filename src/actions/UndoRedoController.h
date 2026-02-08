@@ -6,10 +6,6 @@
 #include <chrono>
 #include <vector>
 
-namespace Persistence {
-    class ChangedObjectRegistry;
-}
-
 namespace Actions {
 
 // UndoRedoController: Handles undo/redo via double-tap gestures
@@ -24,7 +20,7 @@ class UndoRedoController : public IFrameUpdateListener
 public:
     static UndoRedoController* GetSingleton();
 
-    void Initialize(Persistence::ChangedObjectRegistry& registry);
+    void Initialize();
     void Shutdown();
 
     bool IsInitialized() const { return m_initialized; }
@@ -68,9 +64,6 @@ private:
     void DisableObject(RE::FormID formId);
 
     bool m_initialized = false;
-
-    // Dependencies
-    Persistence::ChangedObjectRegistry* m_registry = nullptr;
 
     // Input callback ID
     EditModeInputManager::CallbackId m_buttonCallbackId = EditModeInputManager::InvalidCallbackId;

@@ -461,7 +461,7 @@ bool BaseObjectSwapperParser::WriteConsolidatedIniFile(
         // Note: In consolidated mode, we need to parse cell info from comments
         // For now, existing entries go to a "Unknown" cell if we can't determine
         for (auto& entry : existingEntries) {
-            existingEntriesByCell[""][entry.formKeyString] = std::move(entry);
+            existingEntriesByCell[""][""][entry.formKeyString] = std::move(entry);
         }
     } else if (std::filesystem::exists(filePath)) {
         auto existingEntries = ParseIniFile(filePath);

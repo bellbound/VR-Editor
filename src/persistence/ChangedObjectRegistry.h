@@ -1,7 +1,8 @@
 #pragma once
 
 #include "../util/UUID.h"
-#include "PersistenceTypes.h"
+#include <RE/N/NiTransform.h>
+#include <RE/F/FormTypes.h>
 #include <string>
 #include <unordered_map>
 #include <optional>
@@ -43,7 +44,7 @@ struct ChangedObjectRuntimeData {
     ChangedObjectRuntimeData() = default;
 };
 
-// ChangedObjectRegistry: Tracks modified objects for persistence
+// ChangedObjectRegistry: Singleton that tracks modified objects
 //
 // Purpose:
 // - Stores the ORIGINAL state of objects before any modifications
@@ -58,16 +59,9 @@ struct ChangedObjectRuntimeData {
 // Undo Behavior:
 // - Only entries created this session can be removed on undo
 // - Entries loaded from save games are permanent (no ActionId link)
-//
-// Ownership:
-// - Owned by SystemInitializer, available from plugin load
-// - Access via SystemInitializer::GetSingleton()->GetChangedObjectRegistry()
 class ChangedObjectRegistry {
 public:
-    ChangedObjectRegistry() = default;
-    ~ChangedObjectRegistry() = default;
-    ChangedObjectRegistry(const ChangedObjectRegistry&) = delete;
-    ChangedObjectRegistry& operator=(const ChangedObjectRegistry&) = delete;
+    static ChangedObjectRegistry* GetSingleton();
 
     // ========== Registration ==========
 
@@ -175,6 +169,11 @@ public:
     void Clear();
 
 private:
+    ChangedObjectRegistry() = default;
+    ~ChangedObjectRegistry() = default;
+    ChangedObjectRegistry(const ChangedObjectRegistry&) = delete;
+    ChangedObjectRegistry& operator=(const ChangedObjectRegistry&) = delete;
+
     // Map of formKey -> runtime data
     // Key is the stable form key string (e.g., "0x10C0E3~Skyrim.esm")
     std::unordered_map<std::string, ChangedObjectRuntimeData> m_entries;

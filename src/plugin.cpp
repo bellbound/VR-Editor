@@ -1,18 +1,26 @@
 #include "log.h"
 #include "HealthCheck.h"
-#include "SystemInitializer.h"
-#include "persistence/ChangedObjectRegistry.h"
 #include "util/InputManager.h"
 #include "util/MenuChecker.h"
 #include "util/SkyrimNetInterface.h"
 #include "interfaces/higgsinterface001.h"
 #include "interfaces/ThreeDUIInterface001.h"
 #include "EditModeManager.h"
+#include "EditModeInputManager.h"
 #include "FrameCallbackDispatcher.h"
+#include "EditModeTransitioner.h"
+#include "EditModeStateManager.h"
 #include "selection/SelectionState.h"
 #include "selection/DelayedHighlightRefreshManager.h"
+#include "grab/RemoteGrabController.h"
+#include "grab/RemoteSelectionController.h"
+#include "grab/SphereSelectionController.h"
 #include "grab/DeferredCollisionUpdateManager.h"
 #include "visuals/ObjectHighlighter.h"
+#include "actions/UndoRedoController.h"
+#include "ui/SelectionMenu.h"
+#include "ui/GalleryMenu.h"
+#include "ui/MenuStateManager.h"
 #include "persistence/SaveGameDataManager.h"
 #include "persistence/AddedObjectsSpawner.h"
 #include "persistence/CreatedObjectTracker.h"
@@ -108,16 +116,64 @@ private:
 // g_higgsInterface is declared extern in higgsinterface001.h
 // g_p3duiInterface is internal to ThreeDUIInterface001.cpp but accessible via P3DUI::GetInterface001()
 
+// Flag to track if input systems have been initialized
+static bool g_inputSystemsInitialized = false;
+
+// Initialize input-related systems. Called on first game load/new game.
+// Deferred from DataLoaded to allow 3DUI to register its VR input callbacks first.
+void InitializeInputSystems()
+{
+	if (g_inputSystemsInitialized) {
+		return;
+	}
+
+	spdlog::info("Initializing input systems (deferred initialization)");
+
+	// Initialize InputManager (needs OpenVR hook API)
+	// This registers with SkyrimVRTools - done AFTER 3DUI so 3DUI callbacks fire first
+	InputManager::GetSingleton()->Initialize();
+
+	// Initialize EditModeInputManager (needs InputManager)
+	EditModeInputManager::GetSingleton()->Initialize();
+
+	// Initialize SelectionMenu (needs 3DUI interface and EditModeInputManager)
+	SelectionMenu::GetSingleton()->Initialize();
+
+	// Initialize GalleryMenu (needs 3DUI interface and EditModeInputManager)
+	GalleryMenu::GetSingleton()->Initialize();
+
+	// Initialize MenuStateManager to create menu roots and setup menus
+	MenuStateManager::GetSingleton()->Initialize();
+
+	// Initialize EditModeTransitioner (needs InputManager and FrameCallbackDispatcher)
+	EditModeTransitioner::GetSingleton()->Initialize();
+
+	// Initialize grab controllers
+	Grab::RemoteGrabController::GetSingleton()->Initialize();
+	Grab::RemoteSelectionController::GetSingleton()->Initialize();
+	Grab::SphereSelectionController::GetSingleton()->Initialize();
+
+	// Initialize EditModeStateManager - coordinates selection and placement states
+	// Must be after individual controllers since it owns trigger input
+	EditModeStateManager::GetSingleton()->Initialize();
+
+	// Initialize UndoRedoController (needs EditModeInputManager and FrameCallbackDispatcher)
+	Actions::UndoRedoController::GetSingleton()->Initialize();
+
+	g_inputSystemsInitialized = true;
+	spdlog::info("Input systems initialized");
+}
+
 void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 {
 	switch (a_msg->type) {
 	case SKSE::MessagingInterface::kPostLoad:
 		spdlog::info("PostLoad");
 
-		// Apply any pending latest files BEFORE BOS loads its INI files
-		// BOS locks _SWAP.ini files when reading them, so we use _SWAP_latest.ini files
+		// Apply any pending session files BEFORE BOS loads its INI files
+		// BOS locks _SWAP.ini files when reading them, so we use _session.ini files
 		// during gameplay and copy them to _SWAP.ini here before BOS reads them
-		Persistence::BaseObjectSwapperParser::GetSingleton()->ApplyPendingLatestFiles();
+		Persistence::BaseObjectSwapperParser::GetSingleton()->ApplyPendingSessionFiles();
 		break;
 
 	case SKSE::MessagingInterface::kPostPostLoad:
@@ -175,7 +231,7 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 		// Handles delayed re-application of highlights after Disable/Enable cycles
 		Selection::DelayedHighlightRefreshManager::GetSingleton()->Initialize();
 
-		// Note: SelectionMenu is initialized on first edit mode entry via SystemInitializer::MayInitializeOnFirstUse()
+		// Note: SelectionMenu is initialized in InitializeInputSystems() after EditModeInputManager
 
 		// Register cell event sink - handles cell attach/detach events
 		// - On detach: exits edit mode when player changes cells
@@ -204,11 +260,11 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 
 		// Process pending hard deletes for dynamic references (copies/gallery spawns)
 		// These were marked for deletion but SetDelete was deferred to this safe point
-		SystemInitializer::GetSingleton()->GetChangedObjectRegistry().ProcessPendingHardDeletes();
+		Persistence::ChangedObjectRegistry::GetSingleton()->ProcessPendingHardDeletes();
 
-		// Initialize essential systems (input, edit mode detection)
-		// Additional systems are initialized on first use via SystemInitializer::MayInitializeOnFirstUse()
-		SystemInitializer::GetSingleton()->InitializeSystems_PostLoadGameOrNewGame();
+		// Initialize input systems now - after 3DUI has registered with SkyrimVRTools
+		// This ensures 3DUI input callbacks fire first and can consume events
+		InitializeInputSystems();
 
 		// Notify user if VR interactivity is unavailable due to missing dependency
 		if (InputManager::GetSingleton()->IsSkyrimVRToolsMissing()) {
@@ -224,9 +280,9 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 	case SKSE::MessagingInterface::kNewGame:
 		spdlog::info("NewGame");
 
-		// Initialize essential systems (input, edit mode detection)
-		// Additional systems are initialized on first use via SystemInitializer::MayInitializeOnFirstUse()
-		SystemInitializer::GetSingleton()->InitializeSystems_PostLoadGameOrNewGame();
+		// Initialize input systems now - after 3DUI has registered with SkyrimVRTools
+		// This ensures 3DUI input callbacks fire first and can consume events
+		InitializeInputSystems();
 
 		// Notify user if VR interactivity is unavailable due to missing dependency
 		if (InputManager::GetSingleton()->IsSkyrimVRToolsMissing()) {
@@ -249,9 +305,6 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
 	spdlog::info("Build timestamp: {} {}", VREDIT_BUILD_DATE, VREDIT_BUILD_TIME);
 	spdlog::info("Expected 3DUI interface version: {}", P3DUI::P3DUI_INTERFACE_VERSION);
 
-	// Initialize core systems first - these must exist before any callbacks fire
-	SystemInitializer::GetSingleton()->InitializeCoreSystems();
-
 	// Install main thread hook for frame updates (must be done early)
 	if (!FrameCallbackDispatcher::InstallHook()) {
 		spdlog::error("Failed to install FrameCallbackDispatcher hook");
@@ -267,8 +320,7 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
 	// Register serialization callbacks for save/load persistence
 	auto* serialization = SKSE::GetSerializationInterface();
 	if (serialization) {
-		auto& registry = SystemInitializer::GetSingleton()->GetChangedObjectRegistry();
-		Persistence::SaveGameDataManager::GetSingleton()->Initialize(serialization, registry);
+		Persistence::SaveGameDataManager::GetSingleton()->Initialize(serialization);
 		spdlog::info("Registered serialization callbacks for ChangedObjectRegistry");
 	} else {
 		spdlog::warn("Serialization interface not available - changed objects will not persist");

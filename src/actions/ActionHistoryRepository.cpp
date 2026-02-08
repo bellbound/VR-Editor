@@ -79,9 +79,8 @@ namespace {
     // Helper to register changed objects from an action with the ChangedObjectRegistry
     // Only TransformAction, MultiTransformAction, and DeleteAction modify object state
     // SelectionAction is skipped - it doesn't change the object itself
-    void RegisterChangedObjectsFromAction(const ActionData& action, const Util::ActionId& actionId,
-                                          Persistence::ChangedObjectRegistry* registry) {
-        if (!registry) return;
+    void RegisterChangedObjectsFromAction(const ActionData& action, const Util::ActionId& actionId) {
+        auto* registry = Persistence::ChangedObjectRegistry::GetSingleton();
 
         std::visit([&](const auto& act) {
             using T = std::decay_t<decltype(act)>;
@@ -115,9 +114,8 @@ namespace {
     // Helper to update current transforms in the registry for BOS export
     // Called when actions are added, undone, or redone
     // useChangedTransform: true = use changedTransform (add/redo), false = use initialTransform (undo)
-    void UpdateCurrentTransformsFromAction(const ActionData& action, bool useChangedTransform,
-                                           Persistence::ChangedObjectRegistry* registry) {
-        if (!registry) return;
+    void UpdateCurrentTransformsFromAction(const ActionData& action, bool useChangedTransform) {
+        auto* registry = Persistence::ChangedObjectRegistry::GetSingleton();
 
         std::visit([&](const auto& act) {
             using T = std::decay_t<decltype(act)>;
@@ -168,18 +166,6 @@ ActionHistoryRepository* ActionHistoryRepository::GetSingleton()
     return &instance;
 }
 
-void ActionHistoryRepository::Initialize(Persistence::ChangedObjectRegistry& registry)
-{
-    if (m_initialized) {
-        spdlog::warn("ActionHistoryRepository already initialized");
-        return;
-    }
-
-    m_registry = &registry;
-    m_initialized = true;
-    spdlog::info("ActionHistoryRepository initialized");
-}
-
 Util::ActionId ActionHistoryRepository::Add(const ActionData& action)
 {
     ClearRedoStack();  // New action invalidates redo history
@@ -187,10 +173,10 @@ Util::ActionId ActionHistoryRepository::Add(const ActionData& action)
     m_actions.emplace(id, action);
 
     // Register changed objects with persistence system
-    RegisterChangedObjectsFromAction(action, id, m_registry);
+    RegisterChangedObjectsFromAction(action, id);
 
     // Update current transforms for BOS export
-    UpdateCurrentTransformsFromAction(action, true, m_registry);  // true = use changedTransform
+    UpdateCurrentTransformsFromAction(action, true);  // true = use changedTransform
 
     spdlog::trace("ActionHistoryRepository: Added action {}", id.ToString());
     return id;
@@ -202,10 +188,10 @@ Util::ActionId ActionHistoryRepository::Add(ActionData&& action)
     Util::ActionId id = GetActionId(action);
 
     // Register before moving (need to read the action data)
-    RegisterChangedObjectsFromAction(action, id, m_registry);
+    RegisterChangedObjectsFromAction(action, id);
 
     // Update current transforms for BOS export (before moving)
-    UpdateCurrentTransformsFromAction(action, true, m_registry);  // true = use changedTransform
+    UpdateCurrentTransformsFromAction(action, true);  // true = use changedTransform
 
     m_actions.emplace(id, std::move(action));
     spdlog::trace("ActionHistoryRepository: Added action {}", id.ToString());
@@ -224,14 +210,15 @@ Util::ActionId ActionHistoryRepository::AddTransform(RE::FormID formId,
     Util::ActionId id = action.actionId;
 
     // Register with persistence before storing (skip actors — NPC moves are not persisted)
-    if (!IsActor(formId) && m_registry) {
+    if (!IsActor(formId)) {
         if (auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(formId)) {
-            m_registry->RegisterIfNew(ref, initial, id);
+            auto* registry = Persistence::ChangedObjectRegistry::GetSingleton();
+            registry->RegisterIfNew(ref, initial, id);
 
             // Update current transform for BOS export
             std::string formKey = Persistence::FormKeyUtil::BuildFormKey(ref);
             if (!formKey.empty()) {
-                m_registry->UpdateCurrentTransform(formKey, changed, GetLocationName(ref));
+                registry->UpdateCurrentTransform(formKey, changed, GetLocationName(ref));
             }
         }
     }
@@ -255,16 +242,15 @@ Util::ActionId ActionHistoryRepository::AddMultiTransform(std::vector<SingleTran
     Util::ActionId id = action.actionId;
 
     // Register each transformed object with persistence and update current transforms
-    if (m_registry) {
-        for (const auto& st : action.transforms) {
-            if (auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(st.formId)) {
-                m_registry->RegisterIfNew(ref, st.initialTransform, id);
+    auto* registry = Persistence::ChangedObjectRegistry::GetSingleton();
+    for (const auto& st : action.transforms) {
+        if (auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(st.formId)) {
+            registry->RegisterIfNew(ref, st.initialTransform, id);
 
-                // Update current transform for BOS export
-                std::string formKey = Persistence::FormKeyUtil::BuildFormKey(ref);
-                if (!formKey.empty()) {
-                    m_registry->UpdateCurrentTransform(formKey, st.changedTransform, GetLocationName(ref));
-                }
+            // Update current transform for BOS export
+            std::string formKey = Persistence::FormKeyUtil::BuildFormKey(ref);
+            if (!formKey.empty()) {
+                registry->UpdateCurrentTransform(formKey, st.changedTransform, GetLocationName(ref));
             }
         }
     }
@@ -397,7 +383,7 @@ std::optional<ActionData> ActionHistoryRepository::Undo()
     m_actions.erase(std::prev(m_actions.end()));
 
     // Update current transforms for BOS export (use initial transforms - undoing)
-    UpdateCurrentTransformsFromAction(m_redoStack.back(), false, m_registry);  // false = use initialTransform
+    UpdateCurrentTransformsFromAction(m_redoStack.back(), false);  // false = use initialTransform
 
     spdlog::info("ActionHistoryRepository: Undid action {} (undo: {}, redo: {})",
         id.ToString(), m_actions.size(), m_redoStack.size());
@@ -421,7 +407,7 @@ std::optional<ActionData> ActionHistoryRepository::Redo()
     m_actions.emplace(id, action);
 
     // Update current transforms for BOS export (use changed transforms - redoing)
-    UpdateCurrentTransformsFromAction(action, true, m_registry);  // true = use changedTransform
+    UpdateCurrentTransformsFromAction(action, true);  // true = use changedTransform
 
     spdlog::info("ActionHistoryRepository: Redid action {} (undo: {}, redo: {})",
         id.ToString(), m_actions.size(), m_redoStack.size());
