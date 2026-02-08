@@ -133,6 +133,10 @@ public:
                                 const RE::NiTransform& currentTransform,
                                 std::string_view locationName);
 
+    // Update the deleted state of an object (for undo/redo of delete actions)
+    // Marks the entry as having pending export changes
+    void SetDeletedState(const std::string& formKey, bool isDeleted);
+
     // Get all entries that have pending export changes
     // Used by BaseObjectSwapperExporter to determine what to write
     std::vector<std::pair<std::string, const ChangedObjectRuntimeData*>> GetPendingExportEntries() const;

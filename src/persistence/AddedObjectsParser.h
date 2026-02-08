@@ -10,7 +10,7 @@
 namespace Persistence {
 
 // Represents a single object entry in an AddedObjects INI file
-// Format: baseForm|posA(x,y,z),rotA(rx,ry,rz),scaleA(s)
+// Format: baseForm|posA(x,y,z),rotA(rx,ry,rz),scale(s)
 //
 // Comment format (above each entry):
 // ; EditorId|DisplayName|MeshPath
@@ -134,7 +134,7 @@ public:
     // Format a float with reasonable precision (no trailing zeros)
     static std::string FormatFloat(float value);
 
-    // Parse a property string like "posA(1.0,2.0,3.0),rotA(0,0,90),scaleA(1.5)"
+    // Parse a property string like "posA(1.0,2.0,3.0),rotA(0,0,90),scale(1.5)"
     static bool ParsePropertyString(std::string_view props, AddedObjectEntry& entry);
 
     // Resolve a base form string to a TESForm

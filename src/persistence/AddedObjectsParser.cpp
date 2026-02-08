@@ -28,7 +28,7 @@ std::string AddedObjectEntry::ToIniLine() const
 {
     std::ostringstream ss;
 
-    // Format: baseForm|posA(x,y,z),rotA(rx,ry,rz),scaleA(s)
+    // Format: baseForm|posA(x,y,z),rotA(rx,ry,rz),scale(s)
     ss << baseFormString << "|";
 
     // Position
@@ -43,7 +43,7 @@ std::string AddedObjectEntry::ToIniLine() const
 
     // Scale (only if not 1.0)
     if (std::abs(scale - 1.0f) > 0.0001f) {
-        ss << ",scaleA(" << AddedObjectsParser::FormatFloat(scale) << ")";
+        ss << ",scale(" << AddedObjectsParser::FormatFloat(scale) << ")";
     }
 
     return ss.str();
@@ -354,7 +354,7 @@ bool AddedObjectsParser::WriteIniFile(const std::filesystem::path& filePath,
         file << ";\n";
         file << "; Cell FormKey: " << cellFormKey << "\n";
         file << ";\n";
-        file << "; Format: baseForm|posA(x,y,z),rotA(rx,ry,rz),scaleA(s)\n";
+        file << "; Format: baseForm|posA(x,y,z),rotA(rx,ry,rz),scale(s)\n";
         file << "; - baseForm: EditorID or FormKey (0xID~Plugin) of the base object to spawn\n";
         file << "; ============================================================\n";
         file << "\n";
@@ -481,7 +481,7 @@ bool AddedObjectsParser::WriteConsolidatedIniFile(
         file << "; This file currently only serves as a log for your added objects\n";
         file << "; the actual added objects are stored in the game save file.\n";
         file << ";\n";
-        file << "; Format: baseForm|posA(x,y,z),rotA(rx,ry,rz),scaleA(s)\n";
+        file << "; Format: baseForm|posA(x,y,z),rotA(rx,ry,rz),scale(s)\n";
         file << "; ============================================================\n";
         file << "\n";
 
@@ -679,7 +679,7 @@ bool AddedObjectsParser::ParsePropertyString(std::string_view props, AddedObject
         // Regular expressions for matching property patterns
         std::regex posPattern(R"(posA\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\))");
         std::regex rotPattern(R"(rotA\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\))");
-        std::regex scalePattern(R"(scaleA\s*\(\s*([+-]?\d*\.?\d+)\s*\))");
+        std::regex scalePattern(R"(scale\s*\(\s*([+-]?\d*\.?\d+)\s*\))");
 
         std::string propsStr(props);
         std::smatch match;

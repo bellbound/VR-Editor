@@ -19,7 +19,7 @@ std::string BOSTransformEntry::ToIniLine() const
 {
     std::ostringstream ss;
 
-    // Format: formKey|posA(x,y,z),rotA(rx,ry,rz),scaleA(s),flags(0x...)|100
+    // Format: formKey|posA(x,y,z),rotA(rx,ry,rz),scale(s),flags(0x...)|100
     ss << formKeyString << "|";
 
     // Position
@@ -34,7 +34,7 @@ std::string BOSTransformEntry::ToIniLine() const
 
     // Scale (only if not 1.0)
     if (std::abs(scale - 1.0f) > 0.0001f) {
-        ss << ",scaleA(" << BaseObjectSwapperParser::FormatFloat(scale) << ")";
+        ss << ",scale(" << BaseObjectSwapperParser::FormatFloat(scale) << ")";
     }
 
     // Initially Disabled flag for deleted references
@@ -776,8 +776,8 @@ bool BaseObjectSwapperParser::ParsePropertyString(std::string_view props, BOSTra
         std::regex posPattern(R"(posA\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\))");
         // rotA(x,y,z)
         std::regex rotPattern(R"(rotA\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\))");
-        // scaleA(s)
-        std::regex scalePattern(R"(scaleA\s*\(\s*([+-]?\d*\.?\d+)\s*\))");
+        // scale(s)
+        std::regex scalePattern(R"(scale\s*\(\s*([+-]?\d*\.?\d+)\s*\))");
         // flags(0x...) - detect Initially Disabled flag
         std::regex flagsPattern(R"(flags\s*\(\s*0x([0-9A-Fa-f]+)\s*\))");
 

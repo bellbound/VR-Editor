@@ -3,6 +3,7 @@
 #include "../persistence/ChangedObjectRegistry.h"
 #include "../persistence/FormKeyUtil.h"
 #include <RE/A/Actor.h>
+#include <fmt/format.h>
 
 namespace Actions {
 
@@ -142,9 +143,21 @@ namespace {
                         }
                     }
                 }
+            } else if constexpr (std::is_same_v<T, DeleteAction>) {
+                // Update deleted state for undo/redo of delete actions
+                // useChangedTransform=true means redo (delete again), false means undo (restore)
+                for (const auto& del : act.deletedObjects) {
+                    if (auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(del.formId)) {
+                        std::string formKey = Persistence::FormKeyUtil::BuildFormKey(ref);
+                        if (formKey.empty()) {
+                            // Dynamic forms use FormID directly with DYNAMIC marker
+                            formKey = fmt::format("0x{:08X}~DYNAMIC", del.formId);
+                        }
+                        registry->SetDeletedState(formKey, useChangedTransform);
+                    }
+                }
             }
-            // DeleteAction: No transform to update (object is deleted/restored)
-            // SelectionAction: No transform changes
+            // SelectionAction: No state changes needed
         }, action);
     }
 } // anonymous namespace

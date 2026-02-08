@@ -114,6 +114,7 @@ void ChangedObjectRegistry::RegisterDeletedIfNew(RE::TESObjectREFR* ref,
         // Object already tracked - just update the deleted flag
         auto& existing = m_entries[formKey];
         existing.saveData.wasDeleted = true;
+        existing.hasPendingExportChanges = true;  // Mark for BOS export
 
         // Build base form key if we have a valid base form
         if (baseFormId != 0) {
@@ -143,6 +144,7 @@ void ChangedObjectRegistry::RegisterDeletedIfNew(RE::TESObjectREFR* ref,
         std::chrono::system_clock::now().time_since_epoch()).count();
     data.firstChangeActionId = actionId;
     data.createdThisSession = true;
+    data.hasPendingExportChanges = true;  // Mark for BOS export
 
     // Build base form key if we have a valid base form
     if (baseFormId != 0) {
@@ -264,6 +266,23 @@ void ChangedObjectRegistry::UpdateCurrentTransform(const std::string& formKey,
 
     spdlog::trace("ChangedObjectRegistry: Updated current transform for {} (location: {})",
         formKey, locationName);
+}
+
+void ChangedObjectRegistry::SetDeletedState(const std::string& formKey, bool isDeleted)
+{
+    std::unique_lock lock(m_mutex);
+
+    auto it = m_entries.find(formKey);
+    if (it == m_entries.end()) {
+        spdlog::warn("ChangedObjectRegistry: Cannot set deleted state for unregistered key: {}", formKey);
+        return;
+    }
+
+    it->second.saveData.wasDeleted = isDeleted;
+    it->second.hasPendingExportChanges = true;
+
+    spdlog::trace("ChangedObjectRegistry: Set deleted state for {} to {}",
+        formKey, isDeleted ? "true" : "false");
 }
 
 std::vector<std::pair<std::string, const ChangedObjectRuntimeData*>>
