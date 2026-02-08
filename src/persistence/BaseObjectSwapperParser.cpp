@@ -617,15 +617,25 @@ bool BaseObjectSwapperParser::WriteConsolidatedIniFile(
     }
 
     // Then, preserve cells from existing file that we didn't update
-    for (auto& [cellKey, cellPair] : existingCellData) {
-        if (updatedCells.find(cellKey) == updatedCells.end() && !cellPair.second.empty()) {
+    // NOTE: We use existingEntriesByCell (not existingCellData) because entries were moved
+    // from existingCellData into existingEntriesByCell earlier. For non-updated cells,
+    // existingEntriesByCell still has valid entries.
+    for (auto& [cellKey, cellEntryMap] : existingEntriesByCell) {
+        if (updatedCells.find(cellKey) == updatedCells.end() && !cellEntryMap.empty()) {
             CellSectionData preservedSection;
             preservedSection.cellFormKey = cellKey;
-            preservedSection.cellEditorId = cellPair.first;
-            preservedSection.entries = std::move(cellPair.second);
-            finalSections.push_back(std::move(preservedSection));
+            // Get editor ID from existingCellData (the string wasn't moved)
+            auto cellDataIt = existingCellData.find(cellKey);
+            if (cellDataIt != existingCellData.end()) {
+                preservedSection.cellEditorId = cellDataIt->second.first;
+            }
+            // Move entries from existingEntriesByCell (these are valid, not moved-from)
+            for (auto& [formKey, entry] : cellEntryMap) {
+                preservedSection.entries.push_back(std::move(entry));
+            }
             spdlog::trace("BaseObjectSwapperParser: Preserving {} entries from cell {}",
                 preservedSection.entries.size(), cellKey);
+            finalSections.push_back(std::move(preservedSection));
         }
     }
 
