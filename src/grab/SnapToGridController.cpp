@@ -296,6 +296,32 @@ SnapToGridController::SnapResult SnapToGridController::ComputeSmoothedSnap(
     return result;
 }
 
+RE::NiPoint3 SnapToGridController::SnapToFinal(const RE::NiPoint3& rawPosition) const
+{
+    if (!m_enabled) {
+        return rawPosition;
+    }
+
+    float positionGridSize = GetPositionGridSizeFromConfig();
+
+    if (m_gridOverride.active) {
+        float effectiveGridSize = positionGridSize * m_gridOverride.scale;
+        RE::NiPoint3 relativePos = {
+            rawPosition.x - m_gridOverride.offset.x,
+            rawPosition.y - m_gridOverride.offset.y,
+            rawPosition.z - m_gridOverride.offset.z
+        };
+        RE::NiPoint3 snappedRelative = SnapPositionToGrid(relativePos, effectiveGridSize);
+        return {
+            snappedRelative.x + m_gridOverride.offset.x,
+            snappedRelative.y + m_gridOverride.offset.y,
+            snappedRelative.z + m_gridOverride.offset.z
+        };
+    }
+
+    return SnapPositionToGrid(rawPosition, positionGridSize);
+}
+
 RE::NiPoint3 SnapToGridController::SnapPositionToGrid(const RE::NiPoint3& pos, float gridSize)
 {
     return RE::NiPoint3{

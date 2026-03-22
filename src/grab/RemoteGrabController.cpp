@@ -910,6 +910,10 @@ void RemoteGrabController::RecordActions()
     RE::NiTransform smoothed = m_smoother.GetCurrent();
     float smoothedAngle = ExtractZRotation(smoothed.rotate);
 
+    // Apply grid snap to get the exact snapped position (without motion smoothing).
+    // Must match FinalizePositions so undo records the correct final position.
+    RE::NiPoint3 finalCenter = m_snapController.SnapToFinal(smoothed.translate);
+
     // Get accumulated left-hand rotation (same as UpdateAllObjects)
     RE::NiMatrix3 totalLeftHandRotation = m_rotationTransformer.GetAccumulatedRotation();
     RE::NiPoint3 totalLeftHandEuler = m_rotationTransformer.GetAccumulatedEulerDelta();
@@ -927,7 +931,7 @@ void RemoteGrabController::RecordActions()
         // This preserves the snapped position/rotation that was shown during movement
         // Grid settings ensure final recorded rotation matches what user saw on screen
         ComputedObjectTransform computed = RemoteGrabTransformCalculator::Calculate(
-            obj, smoothed.translate, smoothedAngle, obj.wasGroundSnapped,
+            obj, finalCenter, smoothedAngle, obj.wasGroundSnapped,
             m_snapController.IsEnabled() && m_snapController.IsRotationSnappingEnabled(),
             m_snapController.GetRotationGridDegrees());
 
@@ -935,9 +939,9 @@ void RemoteGrabController::RecordActions()
         if (hasLeftHandRotation) {
             // Rotate position around group center
             RE::NiPoint3 offset = {
-                computed.transform.translate.x - smoothed.translate.x,
-                computed.transform.translate.y - smoothed.translate.y,
-                computed.transform.translate.z - smoothed.translate.z
+                computed.transform.translate.x - finalCenter.x,
+                computed.transform.translate.y - finalCenter.y,
+                computed.transform.translate.z - finalCenter.z
             };
             RE::NiPoint3 rotatedOffset = {
                 totalLeftHandRotation.entry[0][0] * offset.x + totalLeftHandRotation.entry[0][1] * offset.y + totalLeftHandRotation.entry[0][2] * offset.z,
@@ -945,9 +949,9 @@ void RemoteGrabController::RecordActions()
                 totalLeftHandRotation.entry[2][0] * offset.x + totalLeftHandRotation.entry[2][1] * offset.y + totalLeftHandRotation.entry[2][2] * offset.z
             };
             computed.transform.translate = {
-                smoothed.translate.x + rotatedOffset.x,
-                smoothed.translate.y + rotatedOffset.y,
-                smoothed.translate.z + rotatedOffset.z
+                finalCenter.x + rotatedOffset.x,
+                finalCenter.y + rotatedOffset.y,
+                finalCenter.z + rotatedOffset.z
             };
 
             // Rotate object orientation
@@ -1003,6 +1007,11 @@ void RemoteGrabController::FinalizePositions()
     RE::NiTransform smoothed = m_smoother.GetCurrent();
     float smoothedAngle = ExtractZRotation(smoothed.rotate);
 
+    // Apply grid snap to get the exact snapped position (without motion smoothing).
+    // During preview, ComputeSmoothedSnap() snaps + smooths each frame. Here we need
+    // the final grid-snapped position to match what the user saw.
+    RE::NiPoint3 finalCenter = m_snapController.SnapToFinal(smoothed.translate);
+
     // Get accumulated left-hand rotation (same as UpdateAllObjects)
     RE::NiMatrix3 totalLeftHandRotation = m_rotationTransformer.GetAccumulatedRotation();
     RE::NiPoint3 totalLeftHandEuler = m_rotationTransformer.GetAccumulatedEulerDelta();
@@ -1022,7 +1031,7 @@ void RemoteGrabController::FinalizePositions()
         // This preserves the snapped position/rotation that was shown during movement
         // Grid settings ensure finalized rotation matches what user saw on screen
         ComputedObjectTransform computed = RemoteGrabTransformCalculator::Calculate(
-            obj, smoothed.translate, smoothedAngle, obj.wasGroundSnapped,
+            obj, finalCenter, smoothedAngle, obj.wasGroundSnapped,
             m_snapController.IsEnabled() && m_snapController.IsRotationSnappingEnabled(),
             m_snapController.GetRotationGridDegrees());
 
@@ -1030,9 +1039,9 @@ void RemoteGrabController::FinalizePositions()
         if (hasLeftHandRotation) {
             // Rotate position around group center
             RE::NiPoint3 offset = {
-                computed.transform.translate.x - smoothed.translate.x,
-                computed.transform.translate.y - smoothed.translate.y,
-                computed.transform.translate.z - smoothed.translate.z
+                computed.transform.translate.x - finalCenter.x,
+                computed.transform.translate.y - finalCenter.y,
+                computed.transform.translate.z - finalCenter.z
             };
             RE::NiPoint3 rotatedOffset = {
                 totalLeftHandRotation.entry[0][0] * offset.x + totalLeftHandRotation.entry[0][1] * offset.y + totalLeftHandRotation.entry[0][2] * offset.z,
@@ -1040,9 +1049,9 @@ void RemoteGrabController::FinalizePositions()
                 totalLeftHandRotation.entry[2][0] * offset.x + totalLeftHandRotation.entry[2][1] * offset.y + totalLeftHandRotation.entry[2][2] * offset.z
             };
             computed.transform.translate = {
-                smoothed.translate.x + rotatedOffset.x,
-                smoothed.translate.y + rotatedOffset.y,
-                smoothed.translate.z + rotatedOffset.z
+                finalCenter.x + rotatedOffset.x,
+                finalCenter.y + rotatedOffset.y,
+                finalCenter.z + rotatedOffset.z
             };
 
             // Rotate object orientation

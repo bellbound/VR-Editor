@@ -94,6 +94,12 @@ public:
         float deltaTime
     );
 
+    // Snap position directly to grid without motion smoothing.
+    // Use this for finalization (on grab release) to get the exact grid position
+    // that matches what ComputeSmoothedSnap converges toward.
+    // Handles grid override if active.
+    RE::NiPoint3 SnapToFinal(const RE::NiPoint3& rawPosition) const;
+
     // Static helpers (can be called without instance)
     // These are useful for one-off snapping calculations
     static RE::NiPoint3 SnapPositionToGrid(const RE::NiPoint3& pos, float gridSize);
