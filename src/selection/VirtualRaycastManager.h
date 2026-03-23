@@ -1,0 +1,116 @@
+#pragma once
+
+#include "../IFrameUpdateListener.h"
+#include <RE/Skyrim.h>
+#include <vector>
+
+namespace Selection {
+
+// VirtualRaycastManager: Simulated raycasting for objects without collision geometry
+//
+// Objects like light sources have no Havok collision, so the physics-based ray in
+// RemoteSelectionController can never hit them. This manager provides a virtual
+// raycast that tests the controller ray against imaginary spheres placed at each
+// eligible object's position.
+//
+// Two concentric spheres per object:
+// - Visibility sphere (large): If the ray intersects this sphere, the object gets
+//   an icon rendered via ObjectHandleVisualizer. The ray does NOT stop — all objects
+//   whose visibility sphere is pierced become visible. This creates a "flashlight" effect.
+// - Selection sphere (small): If the ray intersects this sphere, the object becomes
+//   a hover candidate. The closest candidate along the ray becomes the hovered ref.
+//
+// The manager runs its own periodic scan (ForEachReferenceInRange) to discover eligible
+// objects, then performs per-frame ray-sphere tests against the cached candidate list.
+//
+// RemoteSelectionController queries GetHoveredRef() and compares its distance against
+// the physics raycast hit — whichever is closer wins.
+//
+// Usage:
+// - Initialize() during kDataLoaded (registers for edit-mode-only frame callbacks)
+// - RemoteSelectionController queries GetHoveredRef()/GetHoveredDistance() each frame
+// - ObjectHandleVisualizer queries GetVisibleRefs() at 15 FPS for icon rendering
+// - Clear() when exiting selection mode
+//
+class VirtualRaycastManager : public IFrameUpdateListener
+{
+public:
+    static VirtualRaycastManager* GetSingleton();
+
+    void Initialize();
+    void Shutdown();
+
+    bool IsInitialized() const { return m_initialized; }
+
+    // IFrameUpdateListener interface
+    void OnFrameUpdate(float deltaTime) override;
+
+    // Query: refs whose visibility sphere the ray intersects this frame
+    const std::vector<RE::TESObjectREFR*>& GetVisibleRefs() const { return m_visibleRefs; }
+
+    // Query: closest ref whose selection sphere the ray intersects (or nullptr)
+    RE::TESObjectREFR* GetHoveredRef() const { return m_hoveredRef; }
+
+    // Query: distance along ray to hovered ref's selection sphere intersection
+    float GetHoveredDistance() const { return m_hoveredDistance; }
+
+    // Clear all state (called when exiting selection mode)
+    void Clear();
+
+    // Check if a reference is eligible for virtual raycasting (lights, future: foliage)
+    // Public so ObjectHandleVisualizer can filter selected refs to only show handles for eligible types
+    static bool IsVirtualRaycastCandidate(RE::TESObjectREFR* ref);
+
+    // Configuration
+    static constexpr float kSelectionSphereRadius = 25.0f;    // Imaginary collision sphere for hover
+    static constexpr float kVisibilitySphereRadius = 150.0f;   // Larger sphere for icon visibility
+    static constexpr float kMaxScanDistance = 2000.0f;         // Max distance from player to scan refs
+    static constexpr float kScanIntervalSeconds = 0.1f;        // Throttle for ref discovery scan (100ms)
+    static constexpr float kHysteresisTime = 0.1f;             // Retain hovered ref this long after miss
+
+private:
+    VirtualRaycastManager() = default;
+    ~VirtualRaycastManager() = default;
+    VirtualRaycastManager(const VirtualRaycastManager&) = delete;
+    VirtualRaycastManager& operator=(const VirtualRaycastManager&) = delete;
+
+    // Cached candidate from periodic scan
+    struct CandidateRef {
+        RE::TESObjectREFR* ref;
+        RE::FormID formId;
+        RE::NiPoint3 position;
+    };
+
+    // Ray-sphere intersection test
+    // Returns t (distance along ray to nearest intersection) or -1.0f if no hit
+    static float RaySphereIntersect(const RE::NiPoint3& origin, const RE::NiPoint3& direction,
+                                     const RE::NiPoint3& center, float radius);
+
+    // Scan for candidate refs near the player (throttled)
+    void ScanCandidates();
+
+    // Test ray against all candidates and update visible/hovered lists
+    void TestRayAgainstCandidates(const RE::NiPoint3& origin, const RE::NiPoint3& direction);
+
+    // Apply hysteresis logic to hovered ref
+    void UpdateHysteresis(float deltaTime, RE::TESObjectREFR* frameHoveredRef, float frameHoveredDistance);
+
+    bool m_initialized = false;
+
+    // Candidate discovery (throttled scan)
+    std::vector<CandidateRef> m_candidates;
+    float m_scanTimer = 0.0f;
+
+    // Per-frame ray test results
+    std::vector<RE::TESObjectREFR*> m_visibleRefs;
+
+    // Hovered ref (with hysteresis)
+    RE::TESObjectREFR* m_hoveredRef = nullptr;
+    float m_hoveredDistance = 0.0f;
+
+    // Hysteresis state
+    RE::TESObjectREFR* m_pendingClearRef = nullptr;
+    float m_hysteresisTimer = 0.0f;
+};
+
+} // namespace Selection

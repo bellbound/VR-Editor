@@ -32,6 +32,8 @@ set(sources ${sources}
     src/selection/DelayedHighlightRefreshManager.cpp
     src/selection/ConsoleManager.cpp
     src/selection/ObjectFilter.cpp
+    src/selection/VirtualRaycastManager.cpp
+    src/ui/ObjectHandleVisualizer.cpp
     src/grab/TransformSmoother.cpp
     src/grab/RemoteGrabController.cpp
     src/grab/RemoteSelectionController.cpp

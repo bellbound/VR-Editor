@@ -2,12 +2,14 @@
 #include "../FrameCallbackDispatcher.h"
 #include "../selection/SelectionState.h"
 #include "../selection/HoverStateManager.h"
+#include "../selection/VirtualRaycastManager.h"
 #include "../util/VRNodes.h"
 #include "../util/Raycast.h"
 #include "../visuals/RaycastRenderer.h"
 #include "../ui/MenuStateManager.h"
 #include "../log.h"
 #include <cmath>
+#include <limits>
 
 namespace Grab {
 
@@ -152,6 +154,40 @@ void RemoteSelectionController::OnFrameUpdate(float deltaTime)
     RE::NiPoint3 hitPoint;
     std::vector<RE::TESObjectREFR*> retentionHits;
     RE::TESObjectREFR* primaryHit = CastSelectionRays(hitPoint, retentionHits);
+
+    // Compute distance for physics hit
+    float physicsDistance = (std::numeric_limits<float>::max)();
+    if (primaryHit) {
+        RE::NiPoint3 origin = GetHandPosition();
+        float dx = hitPoint.x - origin.x;
+        float dy = hitPoint.y - origin.y;
+        float dz = hitPoint.z - origin.z;
+        physicsDistance = std::sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    // Virtual raycast: check if an invisible object (light, etc.) is closer than the physics hit
+    auto* virtualManager = Selection::VirtualRaycastManager::GetSingleton();
+    if (auto* virtualHit = virtualManager->GetHoveredRef()) {
+        float virtualDistance = virtualManager->GetHoveredDistance();
+        if (virtualDistance < physicsDistance) {
+            primaryHit = virtualHit;
+            // Recompute hit point along ray at virtual distance
+            RE::NiPoint3 origin = GetHandPosition();
+            RE::NiPoint3 fwd = GetHandForward();
+            float len = std::sqrt(fwd.x * fwd.x + fwd.y * fwd.y + fwd.z * fwd.z);
+            if (len > 0.001f) {
+                fwd.x /= len;
+                fwd.y /= len;
+                fwd.z /= len;
+            }
+            hitPoint = {
+                origin.x + fwd.x * virtualDistance,
+                origin.y + fwd.y * virtualDistance,
+                origin.z + fwd.z * virtualDistance
+            };
+            retentionHits.push_back(virtualHit);
+        }
+    }
 
     // Update hover state via HoverStateManager (handles debounce and highlighting)
     // Pass both the primary hit and retention hits for sticky highlighting

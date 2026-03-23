@@ -36,6 +36,8 @@ set(headers ${headers}
     src/selection/DelayedHighlightRefreshManager.h
     src/selection/ConsoleManager.h
     src/selection/ObjectFilter.h
+    src/selection/VirtualRaycastManager.h
+    src/ui/ObjectHandleVisualizer.h
     src/ui/SelectionMenu.h
     src/ui/SelectionMenuHelpers.h
     src/ui/MenuStateManager.h

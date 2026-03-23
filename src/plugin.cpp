@@ -21,6 +21,8 @@
 #include "ui/SelectionMenu.h"
 #include "ui/GalleryMenu.h"
 #include "ui/MenuStateManager.h"
+#include "ui/ObjectHandleVisualizer.h"
+#include "selection/VirtualRaycastManager.h"
 #include "persistence/SaveGameDataManager.h"
 #include "persistence/AddedObjectsSpawner.h"
 #include "persistence/CreatedObjectTracker.h"
@@ -226,6 +228,12 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 
 		// Initialize SelectionState (stores what objects are selected)
 		Selection::SelectionState::GetSingleton()->Initialize();
+
+		// Initialize VirtualRaycastManager (simulated raycasting for collision-less objects)
+		Selection::VirtualRaycastManager::GetSingleton()->Initialize();
+
+		// Initialize ObjectHandleVisualizer (3DUI icons for invisible objects)
+		ObjectHandleVisualizer::GetSingleton()->Initialize();
 
 		// Initialize DelayedHighlightRefreshManager (needs FrameCallbackDispatcher)
 		// Handles delayed re-application of highlights after Disable/Enable cycles
