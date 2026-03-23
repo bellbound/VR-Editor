@@ -3,6 +3,7 @@
 #include "../FrameCallbackDispatcher.h"
 #include "../util/VRNodes.h"
 #include "../log.h"
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -43,10 +44,21 @@ void VirtualRaycastManager::Shutdown()
 
 void VirtualRaycastManager::OnFrameUpdate(float deltaTime)
 {
-    // Only active during ray-based selection mode
+    // Bail early if light selection is toggled off
+    if (!s_lightSelectionEnabled) {
+        if (m_hoveredRef || !m_visibleRefs.empty()) {
+            Clear();
+        }
+        return;
+    }
+
+    // Active during selection and remote placement (keep icons visible during grabs)
     auto* stateManager = EditModeStateManager::GetSingleton();
-    if (!stateManager || stateManager->GetState() != EditModeState::Selecting) {
-        // Clear results when not in selecting mode so stale data isn't used
+    if (!stateManager) {
+        return;
+    }
+    auto state = stateManager->GetState();
+    if (state != EditModeState::Selecting && state != EditModeState::RemotePlacement) {
         if (m_hoveredRef || !m_visibleRefs.empty()) {
             Clear();
         }
@@ -156,6 +168,7 @@ float VirtualRaycastManager::RaySphereIntersect(const RE::NiPoint3& O, const RE:
 void VirtualRaycastManager::ScanCandidates()
 {
     m_candidates.clear();
+    m_visibleRefs.clear();
 
     auto* tes = RE::TES::GetSingleton();
     auto* player = RE::PlayerCharacter::GetSingleton();
@@ -163,6 +176,9 @@ void VirtualRaycastManager::ScanCandidates()
         return;
     }
 
+    RE::NiPoint3 playerPos = player->GetPosition();
+
+    // Scan all refs within max scan distance for hover candidates
     tes->ForEachReferenceInRange(player, kMaxScanDistance, [&](RE::TESObjectREFR* ref) -> RE::BSContainer::ForEachResult {
         if (!ref || ref == player) {
             return RE::BSContainer::ForEachResult::kContinue;
@@ -172,27 +188,62 @@ void VirtualRaycastManager::ScanCandidates()
             return RE::BSContainer::ForEachResult::kContinue;
         }
 
-        m_candidates.push_back({
-            ref,
-            ref->GetFormID(),
-            ref->GetPosition()
-        });
+        RE::NiPoint3 pos = ref->GetPosition();
+        float dx = pos.x - playerPos.x;
+        float dy = pos.y - playerPos.y;
+        float dz = pos.z - playerPos.z;
+        float dSq = dx * dx + dy * dy + dz * dz;
+
+        m_candidates.push_back({ref, ref->GetFormID(), pos, dSq});
 
         return RE::BSContainer::ForEachResult::kContinue;
     });
 
-    spdlog::trace("VirtualRaycastManager: Scanned {} candidates", m_candidates.size());
+    // Sort candidates by distance (closest first) for adaptive radius
+    std::sort(m_candidates.begin(), m_candidates.end(),
+        [](const CandidateRef& a, const CandidateRef& b) { return a.distanceSq < b.distanceSq; });
+
+    // Adaptive radius: start at base, halve until count fits within slot limit
+    float radiusSq = kBaseVisibilityRadius * kBaseVisibilityRadius;
+    float minRadiusSq = (kBaseVisibilityRadius * 0.25f) * (kBaseVisibilityRadius * 0.25f);  // 256²
+
+    // Count candidates within radius (sorted, so we can stop early)
+    auto countWithinRadius = [&](float rSq) -> size_t {
+        for (size_t i = 0; i < m_candidates.size(); ++i) {
+            if (m_candidates[i].distanceSq > rSq) {
+                return i;
+            }
+        }
+        return m_candidates.size();
+    };
+
+    size_t count = countWithinRadius(radiusSq);
+
+    // Halve radius while too many (down to minimum of 256 units)
+    while (count > static_cast<size_t>(kMaxVisibleRefs) && radiusSq > minRadiusSq) {
+        radiusSq *= 0.25f;  // halving radius = quartering radiusSq
+        count = countWithinRadius(radiusSq);
+    }
+
+    // Populate visible refs: all within final radius, capped at kMaxVisibleRefs
+    size_t limit = std::min(count, static_cast<size_t>(kMaxVisibleRefs));
+    m_visibleRefs.reserve(limit);
+    for (size_t i = 0; i < limit; ++i) {
+        m_visibleRefs.push_back(m_candidates[i].ref);
+    }
+
+    spdlog::trace("VirtualRaycastManager: {} candidates, {} visible (radius {:.0f})",
+        m_candidates.size(), m_visibleRefs.size(), std::sqrt(radiusSq));
 }
 
 void VirtualRaycastManager::TestRayAgainstCandidates(const RE::NiPoint3& origin, const RE::NiPoint3& direction)
 {
-    m_visibleRefs.clear();
+    // NOTE: m_visibleRefs is populated by ScanCandidates() (proximity-based), not here
 
     RE::TESObjectREFR* frameHoveredRef = nullptr;
     float frameHoveredDistance = (std::numeric_limits<float>::max)();
 
     for (auto& candidate : m_candidates) {
-        // Validate ref is still valid
         if (!candidate.ref || candidate.ref->IsDisabled() || candidate.ref->IsDeleted()) {
             continue;
         }
@@ -200,13 +251,7 @@ void VirtualRaycastManager::TestRayAgainstCandidates(const RE::NiPoint3& origin,
         // Update cached position (refs could theoretically move)
         candidate.position = candidate.ref->GetPosition();
 
-        // Test visibility sphere (large) — ray passes through, does not stop
-        float visT = RaySphereIntersect(origin, direction, candidate.position, kVisibilitySphereRadius);
-        if (visT >= 0.0f) {
-            m_visibleRefs.push_back(candidate.ref);
-        }
-
-        // Test selection sphere (small) — closest hit becomes hovered
+        // Test selection sphere — closest hit becomes hovered
         float selT = RaySphereIntersect(origin, direction, candidate.position, kSelectionSphereRadius);
         if (selT >= 0.0f && selT < frameHoveredDistance) {
             frameHoveredRef = candidate.ref;
@@ -214,7 +259,6 @@ void VirtualRaycastManager::TestRayAgainstCandidates(const RE::NiPoint3& origin,
         }
     }
 
-    // Apply hysteresis to the hovered ref
     UpdateHysteresis(0.0f, frameHoveredRef, frameHoveredDistance);
 }
 

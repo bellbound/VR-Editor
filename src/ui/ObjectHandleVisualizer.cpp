@@ -114,6 +114,19 @@ void ObjectHandleVisualizer::OnFrameUpdate(float deltaTime)
         return;
     }
 
+    // Bail early if light selection is toggled off
+    if (!Selection::VirtualRaycastManager::IsLightSelectionEnabled()) {
+        for (auto& slot : m_iconSlots) {
+            if (slot.active) {
+                slot.element->SetScale(0.0f);
+                slot.element->SetVisible(false);
+                slot.assignedFormId = 0;
+                slot.active = false;
+            }
+        }
+        return;
+    }
+
     // Active during Selecting and RemotePlacement (for grabbed light tracking)
     bool isSelecting = stateManager->GetState() == EditModeState::Selecting;
     bool isPlacing = stateManager->GetState() == EditModeState::RemotePlacement;
@@ -153,7 +166,7 @@ void ObjectHandleVisualizer::UpdateSlotAssignments()
     // Sources: VirtualRaycastManager visible refs + selected lights from SelectionState
     std::unordered_map<RE::FormID, RE::TESObjectREFR*> desiredRefs;
 
-    // Source 1: Visible refs from virtual raycast (flashlight cone)
+    // Source 1: Visible refs from proximity scan (adaptive radius around player)
     auto* virtualManager = Selection::VirtualRaycastManager::GetSingleton();
     const auto& visibleRefs = virtualManager->GetVisibleRefs();
     for (auto* ref : visibleRefs) {
@@ -237,10 +250,16 @@ void ObjectHandleVisualizer::UpdateActiveSlots()
         slot.element->SetLocalPosition(pos.x, pos.y, pos.z);
 
         // Update texture: hovered or selected → highlighted, otherwise → lit
+        // 3DUI requires a visibility cycle (hide → SetTexture → show) to re-apply textures
         bool isHighlighted = (slot.assignedFormId == hoveredFormId) ||
                              selectionState->IsSelected(slot.assignedFormId);
 
-        slot.element->SetTexture(isHighlighted ? kHoveredTexture : kLitTexture);
+        if (isHighlighted != slot.highlighted) {
+            slot.element->SetVisible(false);
+            slot.element->SetTexture(isHighlighted ? kHoveredTexture : kLitTexture);
+            slot.element->SetVisible(true);
+            slot.highlighted = isHighlighted;
+        }
     }
 }
 
@@ -273,6 +292,7 @@ void ObjectHandleVisualizer::ReleaseSlot(int index)
     }
     slot.assignedFormId = 0;
     slot.active = false;
+    slot.highlighted = false;
 }
 
 void ObjectHandleVisualizer::AssignSlot(int index, RE::TESObjectREFR* ref)
@@ -289,4 +309,5 @@ void ObjectHandleVisualizer::AssignSlot(int index, RE::TESObjectREFR* ref)
 
     slot.assignedFormId = ref->GetFormID();
     slot.active = true;
+    slot.highlighted = false;
 }

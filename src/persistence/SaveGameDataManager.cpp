@@ -6,6 +6,7 @@
 #include "../config/ConfigStorage.h"
 #include "../config/ConfigOptions.h"
 #include "../gallery/GalleryManager.h"
+#include "../selection/VirtualRaycastManager.h"
 #include "../log.h"
 #include <algorithm>
 #include <chrono>
@@ -201,6 +202,17 @@ void SaveGameDataManager::OnSave(SKSE::SerializationInterface* intfc)
 
     spdlog::info("SaveGameDataManager: Saved {} gallery items", galleryWritten);
 
+    // === Save Editor Settings ===
+    if (!intfc->OpenRecord(kSettingsRecordType, kSettingsDataVersion)) {
+        spdlog::error("SaveGameDataManager: Failed to open settings record");
+        return;
+    }
+    uint8_t lightSelEnabled = Selection::VirtualRaycastManager::IsLightSelectionEnabled() ? 1 : 0;
+    if (!intfc->WriteRecordData(lightSelEnabled)) {
+        spdlog::error("SaveGameDataManager: Failed to write lightSelectionEnabled");
+        return;
+    }
+    spdlog::info("SaveGameDataManager: Saved editor settings (lightSelection={})", lightSelEnabled);
 
     // Respawn created objects in player's current cell after save completes
     // This prevents the "objects disappear" visual glitch when saving
@@ -271,6 +283,20 @@ void SaveGameDataManager::OnLoad(SKSE::SerializationInterface* intfc)
                 }
                 galleryItems.push_back(std::move(item));
             }
+            continue;
+        }
+
+        // === Handle Editor Settings Record ===
+        if (type == kSettingsRecordType) {
+            uint8_t lightSelEnabled = 0;
+            if (version >= 1) {
+                if (!intfc->ReadRecordData(lightSelEnabled)) {
+                    spdlog::error("SaveGameDataManager: Failed to read lightSelectionEnabled");
+                    continue;
+                }
+            }
+            Selection::VirtualRaycastManager::SetLightSelectionEnabled(lightSelEnabled != 0);
+            spdlog::info("SaveGameDataManager: Loaded editor settings (lightSelection={})", lightSelEnabled);
             continue;
         }
 
@@ -382,6 +408,9 @@ void SaveGameDataManager::OnRevert(SKSE::SerializationInterface* /*intfc*/)
 
     auto* gallery = Gallery::GalleryManager::GetSingleton();
     gallery->Clear();
+
+    // Reset editor settings to defaults
+    Selection::VirtualRaycastManager::SetLightSelectionEnabled(false);
 
     spdlog::info("SaveGameDataManager: Revert complete");
 }

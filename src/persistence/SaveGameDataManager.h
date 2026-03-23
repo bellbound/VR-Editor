@@ -53,6 +53,10 @@ private:
     static constexpr uint32_t kGalleryRecordType = 'YLAG';  // Reversed for little-endian: "GALY"
     static constexpr uint32_t kGalleryDataVersion = 3;      // v3: Added originalScale (v2 migrates to 1.0)
 
+    // Editor settings record type: '5VEL'
+    static constexpr uint32_t kSettingsRecordType = 'LEV5';  // Reversed for little-endian: "5VEL"
+    static constexpr uint32_t kSettingsDataVersion = 1;      // v1: lightSelectionEnabled
+
     // Safety limits to prevent crashes from corrupted save data
     static constexpr uint32_t kMaxStringLength = 1024;   // Form keys are short (e.g., "0x10C0E3~Skyrim.esm")
     static constexpr uint32_t kMaxEntryCount = 10000;    // Sanity limit for entry count

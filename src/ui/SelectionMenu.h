@@ -18,6 +18,7 @@
 #include "../gallery/GalleryManager.h"
 #include "../persistence/ChangedObjectRegistry.h"
 #include "../grab/RemoteGrabController.h"
+#include "../selection/VirtualRaycastManager.h"
 #include "SelectionMenuHelpers.h"
 #include "GalleryMenu.h"
 #include "openvr.h"
@@ -496,6 +497,12 @@ private:
             spdlog::info("SelectionMenu: Group Move toggled to {}", newState ? "ON" : "OFF");
             return;
         }
+        if (id == "tool_light_selection") {
+            bool newState = !Selection::VirtualRaycastManager::IsLightSelectionEnabled();
+            Selection::VirtualRaycastManager::SetLightSelectionEnabled(newState);
+            spdlog::info("SelectionMenu: Light Selection toggled to {}", newState ? "ON" : "OFF");
+            return;
+        }
         if (id == "tool_snap_to_grid") {
             bool newState = !Grab::RemoteGrabController::IsSnapToGridEnabled();
             Grab::RemoteGrabController::SetSnapToGridEnabled(newState);
@@ -744,6 +751,7 @@ private:
         m_groupMoveButton = nullptr;
         m_snapToGridButton = nullptr;
         m_gridAlignButton = nullptr;
+        m_lightSelectionButton = nullptr;
 
         // === Big Tool Row (Undo/Redo) ===
         constexpr float bigButtonScale = 1.53f;
@@ -848,6 +856,21 @@ private:
             m_toolRow->AddChild(m_snapToGridButton);
         }
 
+        // Light Selection toggle button
+        bool lightSelectionEnabled = Selection::VirtualRaycastManager::IsLightSelectionEnabled();
+        P3DUI::ElementConfig lightSelConfig = P3DUI::ElementConfig::Default("tool_light_selection");
+        lightSelConfig.texturePath = lightSelectionEnabled
+            ? "textures\\VREditor\\light_hovered.dds"
+            : "textures\\VREditor\\light_lit.dds";
+        lightSelConfig.tooltip = L"Toggle light selection";
+        lightSelConfig.scale = 1.1f;
+        lightSelConfig.facingMode = P3DUI::FacingMode::None;
+
+        m_lightSelectionButton = m_api->CreateElement(lightSelConfig);
+        if (m_lightSelectionButton) {
+            m_toolRow->AddChild(m_lightSelectionButton);
+        }
+
         // Grid Align button (only visible when snap-to-grid is enabled)
         // Button states:
         // - Grid disabled: Hidden
@@ -899,6 +922,7 @@ private:
     P3DUI::Element* m_groupMoveButton = nullptr;
     P3DUI::Element* m_snapToGridButton = nullptr;
     P3DUI::Element* m_gridAlignButton = nullptr;
+    P3DUI::Element* m_lightSelectionButton = nullptr;
 
     // Context menu state
     ContextMenuState m_contextMenuState = ContextMenuState::Hidden;

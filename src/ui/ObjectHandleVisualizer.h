@@ -54,6 +54,7 @@ private:
         P3DUI::Element* element = nullptr;
         RE::FormID assignedFormId = 0;   // 0 = unassigned/free
         bool active = false;             // true = currently visible at a position
+        bool highlighted = false;        // true = hovered/selected texture applied
     };
 
     // Lazily create 3DUI root and element pool on first use
