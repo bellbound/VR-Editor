@@ -370,6 +370,23 @@ private:
     {
         spdlog::info("SelectionMenu::OnBButtonPressed - isLeft: {}, isReleased: {}", isLeft, isReleased);
 
+        // Y button (left controller) toggles grid snap mode
+        if (isLeft) {
+            if (!isReleased) {
+                bool newState = !Grab::RemoteGrabController::IsSnapToGridEnabled();
+                Grab::RemoteGrabController::SetSnapToGridEnabled(newState);
+                if (!newState) {
+                    Grab::RemoteGrabController::GetSingleton()->GetSnapController().ClearGridOverride();
+                }
+                // Refresh tool row if menu is visible, so button icon updates
+                if (IsMenuOpen()) {
+                    PopulateToolRow();
+                }
+                spdlog::info("SelectionMenu: Y button toggled Snap to Grid to {}", newState ? "ON" : "OFF");
+            }
+            return true;  // Consume both press and release for Y
+        }
+
         if (!isReleased) {
             // B button pressed - show menu at hand
             spdlog::info("SelectionMenu::OnBButtonPressed - Showing menu at hand");

@@ -162,7 +162,7 @@ void ResetCurrentCellEdits(RE::StaticFunctionTag*)
     {
         auto* bos = Persistence::BaseObjectSwapperParser::GetSingleton();
         auto swapFileName = Persistence::BaseObjectSwapperParser::BuildIniFileName(cellEditorId, cellFormKey);
-        auto sessionFileName = Persistence::BaseObjectSwapperParser::BuildSessionIniFileName(cellEditorId, cellFormKey);
+        auto sessionFileName = Persistence::BaseObjectSwapperParser::BuildLatestIniFileName(cellEditorId, cellFormKey);
 
         auto swapPath = bos->GetDataFolderPath() / swapFileName;
         auto sessionPath = bos->GetVREditorFolderPath() / sessionFileName;

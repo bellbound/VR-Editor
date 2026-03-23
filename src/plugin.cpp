@@ -173,7 +173,7 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 		// Apply any pending session files BEFORE BOS loads its INI files
 		// BOS locks _SWAP.ini files when reading them, so we use _session.ini files
 		// during gameplay and copy them to _SWAP.ini here before BOS reads them
-		Persistence::BaseObjectSwapperParser::GetSingleton()->ApplyPendingSessionFiles();
+		Persistence::BaseObjectSwapperParser::GetSingleton()->ApplyPendingLatestFiles();
 		break;
 
 	case SKSE::MessagingInterface::kPostPostLoad:
