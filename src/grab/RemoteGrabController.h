@@ -11,6 +11,9 @@
 #include "SnapToGridController.h"
 #include "../util/UUID.h"
 #include <RE/Skyrim.h>
+#include <RE/T/TESObjectLIGH.h>
+#include <RE/E/ExtraRadius.h>
+#include <RE/E/ExtraLight.h>
 #include <vector>
 
 namespace Grab {
@@ -93,6 +96,9 @@ public:
     static constexpr float kScaleSpeed = 1.0f;             // Scale multiplier change per second
     static constexpr float kMinScale = 0.1f;               // Minimum allowed scale
     static constexpr float kMaxScale = 10.0f;             // Maximum allowed scale
+    static constexpr float kLightRadiusSpeed = 500.0f;     // Radius units per second
+    static constexpr float kMinLightRadius = 32.0f;        // Minimum light radius
+    static constexpr float kMaxLightRadius = 8192.0f;      // Maximum light radius
 
 private:
     RemoteGrabController() = default;
@@ -140,6 +146,10 @@ private:
     // Process thumbstick input with deadzone and axis isolation
     // Returns: processed X and Y values (only dominant axis is non-zero)
     void ProcessThumbstickInput(float& outX, float& outY) const;
+
+    // Light radius helpers — read/write per-instance radius via ExtraRadius
+    float ReadLightRadius(RE::TESObjectREFR* ref) const;
+    void ApplyLightRadius(RE::TESObjectREFR* ref, float radius);
 
     // Record all object transforms to action history
     void RecordActions();
@@ -221,6 +231,12 @@ private:
     // While held, right thumbstick Y axis scales objects instead of moving
     bool m_scaleModeActive = false;
     float m_accumulatedScaleMultiplier = 1.0f;  // Total scale change during this grab
+
+    // Light radius mode — active when exactly 1 light is selected
+    // X-axis controls radius instead of rotation (rotation is meaningless for a single point light)
+    bool m_lightRadiusMode = false;
+    float m_initialLightRadius = 0.0f;   // Radius at grab start (for undo)
+    float m_currentLightRadius = 0.0f;   // Accumulated radius during grab
 
     // Group move mode - when enabled, touching objects are auto-included in selection
     // Persists across grabs, toggled via UI button

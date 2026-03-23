@@ -67,12 +67,12 @@ public:
     static bool IsLightSelectionEnabled() { return s_lightSelectionEnabled; }
 
     // Configuration
-    static constexpr float kSelectionSphereRadius = 25.0f;    // Imaginary collision sphere for hover
+    static constexpr float kSelectionSphereRadius = 25.0f;    // Sphere radius to acquire hover
+    static constexpr float kUnhoverSphereRadius = 40.0f;      // Larger sphere radius to retain hover (hysteresis)
     static constexpr float kMaxScanDistance = 2000.0f;         // Max distance from player to scan refs
     static constexpr float kBaseVisibilityRadius = 1024.0f;    // Default radius for showing light icons
     static constexpr int kMaxVisibleRefs = 32;                 // Max visible refs (matches icon pool size)
     static constexpr float kScanIntervalSeconds = 0.1f;        // Throttle for ref discovery scan (100ms)
-    static constexpr float kHysteresisTime = 0.1f;             // Retain hovered ref this long after miss
 
 private:
     VirtualRaycastManager() = default;
@@ -99,9 +99,6 @@ private:
     // Test ray against all candidates for hover detection (selection sphere only)
     void TestRayAgainstCandidates(const RE::NiPoint3& origin, const RE::NiPoint3& direction);
 
-    // Apply hysteresis logic to hovered ref
-    void UpdateHysteresis(float deltaTime, RE::TESObjectREFR* frameHoveredRef, float frameHoveredDistance);
-
     bool m_initialized = false;
 
     // Candidate discovery (throttled scan)
@@ -111,13 +108,9 @@ private:
     // Proximity-based visible refs (updated at scan rate)
     std::vector<RE::TESObjectREFR*> m_visibleRefs;
 
-    // Hovered ref (with hysteresis)
+    // Hovered ref (sphere-size hysteresis: kSelectionSphereRadius to acquire, kUnhoverSphereRadius to retain)
     RE::TESObjectREFR* m_hoveredRef = nullptr;
     float m_hoveredDistance = 0.0f;
-
-    // Hysteresis state
-    RE::TESObjectREFR* m_pendingClearRef = nullptr;
-    float m_hysteresisTimer = 0.0f;
 
     // Toggle state (persisted to cosave)
     static inline bool s_lightSelectionEnabled = false;

@@ -7,7 +7,9 @@
 #include "../util/PositioningUtil.h"
 #include "../persistence/ChangedObjectRegistry.h"
 #include "../log.h"
+#include <RE/E/ExtraRadius.h>
 #include <cmath>
+#include <optional>
 
 namespace Actions {
 
@@ -181,6 +183,35 @@ bool UndoRedoController::CheckDoubleTap(vr::EVRButtonId buttonId)
     return false;
 }
 
+// Apply light radius via ExtraRadius if the action recorded a radius change.
+// Must be called BEFORE ApplyTransformWithEuler since Disable/Enable rebuilds 3D from extra data.
+static void ApplyLightRadiusIfPresent(RE::FormID formId, const std::optional<float>& radius)
+{
+    if (!radius.has_value()) {
+        return;
+    }
+
+    auto* form = RE::TESForm::LookupByID(formId);
+    if (!form) {
+        return;
+    }
+    auto* ref = form->As<RE::TESObjectREFR>();
+    if (!ref) {
+        return;
+    }
+
+    auto* extraRadius = ref->extraList.GetByType<RE::ExtraRadius>();
+    if (extraRadius) {
+        extraRadius->radius = *radius;
+    } else {
+        auto* newExtra = new RE::ExtraRadius();
+        newExtra->radius = *radius;
+        ref->extraList.Add(newExtra);
+    }
+
+    spdlog::trace("UndoRedoController: Applied light radius={:.1f} to {:08X}", *radius, formId);
+}
+
 void UndoRedoController::PerformUndo()
 {
     auto* repo = ActionHistoryRepository::GetSingleton();
@@ -218,6 +249,9 @@ void UndoRedoController::PerformUndo()
         std::visit([this, notif, isUserVisible](const auto& act) {
             using T = std::decay_t<decltype(act)>;
             if constexpr (std::is_same_v<T, TransformAction>) {
+                // Apply light radius before transform (Disable/Enable rebuilds 3D from extra data)
+                ApplyLightRadiusIfPresent(act.formId, act.initialRadius);
+
                 // Use Euler angles directly for lossless undo
                 ApplyTransformWithEuler(act.formId, act.initialTransform, act.initialEulerAngles);
 
@@ -232,6 +266,7 @@ void UndoRedoController::PerformUndo()
             } else if constexpr (std::is_same_v<T, MultiTransformAction>) {
                 // Undo all transforms in the group
                 for (const auto& st : act.transforms) {
+                    ApplyLightRadiusIfPresent(st.formId, st.initialRadius);
                     // Use Euler angles directly for lossless undo
                     ApplyTransformWithEuler(st.formId, st.initialTransform, st.initialEulerAngles);
                 }
@@ -325,6 +360,9 @@ void UndoRedoController::PerformRedo()
     std::visit([this, notif](const auto& act) {
         using T = std::decay_t<decltype(act)>;
         if constexpr (std::is_same_v<T, TransformAction>) {
+            // Apply light radius before transform (Disable/Enable rebuilds 3D from extra data)
+            ApplyLightRadiusIfPresent(act.formId, act.changedRadius);
+
             // Use Euler angles directly for lossless redo
             ApplyTransformWithEuler(act.formId, act.changedTransform, act.changedEulerAngles);
 
@@ -339,6 +377,7 @@ void UndoRedoController::PerformRedo()
         } else if constexpr (std::is_same_v<T, MultiTransformAction>) {
             // Redo all transforms in the group
             for (const auto& st : act.transforms) {
+                ApplyLightRadiusIfPresent(st.formId, st.changedRadius);
                 // Use Euler angles directly for lossless redo
                 ApplyTransformWithEuler(st.formId, st.changedTransform, st.changedEulerAngles);
             }

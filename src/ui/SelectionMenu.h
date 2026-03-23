@@ -860,8 +860,8 @@ private:
         bool lightSelectionEnabled = Selection::VirtualRaycastManager::IsLightSelectionEnabled();
         P3DUI::ElementConfig lightSelConfig = P3DUI::ElementConfig::Default("tool_light_selection");
         lightSelConfig.texturePath = lightSelectionEnabled
-            ? "textures\\VREditor\\light_hovered.dds"
-            : "textures\\VREditor\\light_lit.dds";
+            ? "textures\\VREditor\\light.dds"
+            : "textures\\VREditor\\light_highlight.dds";
         lightSelConfig.tooltip = L"Toggle light selection";
         lightSelConfig.scale = 1.1f;
         lightSelConfig.facingMode = P3DUI::FacingMode::None;

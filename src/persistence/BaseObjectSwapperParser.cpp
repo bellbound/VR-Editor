@@ -52,12 +52,7 @@ std::string BOSTransformEntry::ToIniLine() const
 
 std::string BOSTransformEntry::ToCommentLine() const
 {
-    // Use unified pipe-separated format: ; EditorId|DisplayName|MeshPath
-    EntryMetadata metadata;
-    metadata.editorId = editorId;
-    metadata.displayName = displayName;
-    metadata.meshName = meshName;
-    return metadata.ToCommentLine();
+    return GetMetadata().ToCommentLine();
 }
 
 void BOSTransformEntry::ApplyMetadataFromComment(std::string_view commentLine)

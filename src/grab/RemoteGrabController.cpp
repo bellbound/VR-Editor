@@ -414,6 +414,21 @@ void RemoteGrabController::OnEnter()
     m_scaleModeActive = false;
     m_accumulatedScaleMultiplier = 1.0f;
 
+    // Detect light radius mode: single object that is a Light form type
+    // Rotation is meaningless for a single point light, so we repurpose X-axis for radius
+    m_lightRadiusMode = false;
+    m_initialLightRadius = 0.0f;
+    m_currentLightRadius = 0.0f;
+    if (m_objects.size() == 1 && m_objects[0].ref) {
+        auto* baseObj = m_objects[0].ref->GetBaseObject();
+        if (baseObj && baseObj->GetFormType() == RE::FormType::Light) {
+            m_lightRadiusMode = true;
+            m_initialLightRadius = ReadLightRadius(m_objects[0].ref);
+            m_currentLightRadius = m_initialLightRadius;
+            spdlog::info("RemoteGrabController: Light radius mode enabled, initial radius={:.1f}", m_initialLightRadius);
+        }
+    }
+
     // Reset left-hand transform state
     m_leftTriggerHeld = false;
     m_leftTriggerValue = 0.0f;
@@ -429,8 +444,8 @@ void RemoteGrabController::OnEnter()
     // Show the ray
     UpdateRayVisualization();
 
-    spdlog::info("RemoteGrabController: OnEnter with {} objects, distance={:.1f}",
-        m_objects.size(), m_distance);
+    spdlog::info("RemoteGrabController: OnEnter with {} objects, distance={:.1f}{}",
+        m_objects.size(), m_distance, m_lightRadiusMode ? ", lightRadiusMode=ON" : "");
 
     // Log initial transforms of all grabbed objects
     Util::ActionLogger::LogHeader("RemoteGrab START", m_objects.size());
@@ -531,6 +546,11 @@ void RemoteGrabController::OnExit()
     // Reset scale mode state
     m_scaleModeActive = false;
     m_accumulatedScaleMultiplier = 1.0f;
+
+    // Reset light radius mode state
+    m_lightRadiusMode = false;
+    m_initialLightRadius = 0.0f;
+    m_currentLightRadius = 0.0f;
 
     // Reset left-hand transform state
     m_leftTriggerHeld = false;
@@ -683,8 +703,16 @@ void RemoteGrabController::UpdateStandardMode(float deltaTime)
         }
     }
 
-    // Update Z rotation based on thumbstick X
-    m_zRotation += stickX * kRotateSpeed * deltaTime;
+    // X-axis: light radius for single light, or Z-rotation for everything else
+    if (m_lightRadiusMode) {
+        m_currentLightRadius += stickX * kLightRadiusSpeed * deltaTime;
+        m_currentLightRadius = std::clamp(m_currentLightRadius, kMinLightRadius, kMaxLightRadius);
+        if (!m_objects.empty() && m_objects[0].ref) {
+            ApplyLightRadius(m_objects[0].ref, m_currentLightRadius);
+        }
+    } else {
+        m_zRotation += stickX * kRotateSpeed * deltaTime;
+    }
 
     // Calculate target center position and rotation
     RE::NiTransform target;
@@ -966,19 +994,26 @@ void RemoteGrabController::RecordActions()
         float finalScale = obj.initialTransform.scale * m_accumulatedScaleMultiplier;
         computed.transform.scale = finalScale;
 
-        // Check if there was meaningful movement or scale change
+        // Check if there was meaningful movement, scale change, or radius change
         float distSq = Util::RotationMath::DistanceSquared(
             computed.transform.translate, obj.initialTransform.translate);
         float scaleChange = std::abs(finalScale - obj.initialTransform.scale);
+        float radiusChange = m_lightRadiusMode ? std::abs(m_currentLightRadius - m_initialLightRadius) : 0.0f;
 
-        // Only include if movement was significant (> 1 unit) or scale changed
-        if (distSq >= 1.0f || scaleChange > 0.001f) {
+        // Only include if movement was significant (> 1 unit), scale changed, or radius changed
+        if (distSq >= 1.0f || scaleChange > 0.001f || radiusChange > 1.0f) {
             Actions::SingleTransform st;
             st.formId = obj.formId;
             st.initialTransform = obj.initialTransform;
             st.changedTransform = computed.transform;
             st.initialEulerAngles = obj.initialEulerAngles;
             st.changedEulerAngles = computed.eulerAngles;
+
+            // Record light radius change if applicable
+            if (m_lightRadiusMode) {
+                st.initialRadius = m_initialLightRadius;
+                st.changedRadius = m_currentLightRadius;
+            }
 
             transforms.push_back(st);
         }
@@ -1071,6 +1106,12 @@ void RemoteGrabController::FinalizePositions()
         obj.ref->SetAngle(computed.eulerAngles);
         obj.ref->SetScale(finalScale);
         obj.ref->Update3DPosition(true);
+
+        // Apply final light radius via ExtraRadius (persists through Disable/Enable cycle)
+        if (m_lightRadiusMode && !m_objects.empty() && obj.ref == m_objects[0].ref) {
+            ApplyLightRadius(obj.ref, m_currentLightRadius);
+            spdlog::info("RemoteGrabController: Applied light radius={:.1f} to {:08X}", m_currentLightRadius, obj.formId);
+        }
 
         spdlog::info("RemoteGrabController: Finalized {:08X} with lossless Euler (deltaZ={:.3f}, groundSnapped={}, leftHandRot={}, scale={:.3f})",
             obj.formId, smoothedAngle, obj.wasGroundSnapped, hasLeftHandRotation, finalScale);
@@ -1328,6 +1369,54 @@ void RemoteGrabController::RemoveLeftHandUndoEntries()
     }
 
     m_leftHandUndoEntries.clear();
+}
+
+float RemoteGrabController::ReadLightRadius(RE::TESObjectREFR* ref) const
+{
+    if (!ref) {
+        return 256.0f;
+    }
+
+    // Check ExtraRadius first (per-instance override takes priority)
+    auto* extraRadius = ref->extraList.GetByType<RE::ExtraRadius>();
+    if (extraRadius) {
+        return extraRadius->radius;
+    }
+
+    // Fall back to base form radius
+    auto* baseObj = ref->GetBaseObject();
+    if (baseObj) {
+        auto* lightForm = baseObj->As<RE::TESObjectLIGH>();
+        if (lightForm) {
+            return static_cast<float>(lightForm->data.radius);
+        }
+    }
+
+    return 256.0f;
+}
+
+void RemoteGrabController::ApplyLightRadius(RE::TESObjectREFR* ref, float radius)
+{
+    if (!ref) {
+        return;
+    }
+
+    // 1. Update or create ExtraRadius for per-instance persistence
+    auto* extraRadius = ref->extraList.GetByType<RE::ExtraRadius>();
+    if (extraRadius) {
+        extraRadius->radius = radius;
+    } else {
+        auto* newExtra = new RE::ExtraRadius();
+        newExtra->radius = radius;
+        ref->extraList.Add(newExtra);
+    }
+
+    // 2. Update runtime NiLight for immediate visual feedback
+    auto* extraLight = ref->extraList.GetByType<RE::ExtraLight>();
+    if (extraLight && extraLight->lightData && extraLight->lightData->light) {
+        auto& runtimeData = extraLight->lightData->light->GetLightRuntimeData();
+        runtimeData.radius = { radius, radius, radius };
+    }
 }
 
 } // namespace Grab

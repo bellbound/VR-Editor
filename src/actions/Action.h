@@ -3,6 +3,7 @@
 #include "../util/UUID.h"
 #include <RE/N/NiTransform.h>
 #include <RE/F/FormTypes.h>
+#include <optional>
 #include <variant>
 #include <vector>
 
@@ -24,6 +25,10 @@ struct TransformAction : ActionBase {
     // ApplyTransform uses these directly, avoiding the lossy Matrix→Euler conversion.
     RE::NiPoint3 initialEulerAngles;    // Euler angles before the action
     RE::NiPoint3 changedEulerAngles;    // Euler angles after the action
+
+    // Optional light radius for undo/redo (only set when radius was changed)
+    std::optional<float> initialRadius;
+    std::optional<float> changedRadius;
 
     TransformAction() : formId(0) {}
 
@@ -47,6 +52,10 @@ struct SingleTransform {
     // ApplyTransform uses these directly, avoiding the lossy Matrix→Euler conversion.
     RE::NiPoint3 initialEulerAngles;   // Euler angles before the action
     RE::NiPoint3 changedEulerAngles;   // Euler angles after the action
+
+    // Optional light radius for undo/redo (only set when radius was changed)
+    std::optional<float> initialRadius;
+    std::optional<float> changedRadius;
 };
 
 // MultiTransformAction: Records changes to multiple objects as a single undo entry

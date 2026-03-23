@@ -8,6 +8,7 @@
 #include "../visuals/RaycastRenderer.h"
 #include "../ui/MenuStateManager.h"
 #include "../log.h"
+#include <algorithm>
 #include <cmath>
 #include <limits>
 
@@ -170,6 +171,12 @@ void RemoteSelectionController::OnFrameUpdate(float deltaTime)
     if (auto* virtualHit = virtualManager->GetHoveredRef()) {
         float virtualDistance = virtualManager->GetHoveredDistance();
         if (virtualDistance < physicsDistance) {
+            // Remove the physics primary hit from retention — the ray stops at the virtual object
+            if (primaryHit) {
+                retentionHits.erase(
+                    std::remove(retentionHits.begin(), retentionHits.end(), primaryHit),
+                    retentionHits.end());
+            }
             primaryHit = virtualHit;
             // Recompute hit point along ray at virtual distance
             RE::NiPoint3 origin = GetHandPosition();

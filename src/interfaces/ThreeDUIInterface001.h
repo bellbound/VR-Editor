@@ -451,8 +451,13 @@ struct Container : Positionable {
     virtual void SetUseHapticFeedback(bool enabled) = 0;
     virtual bool GetUseHapticFeedback() = 0;
 
+    // Remove a specific child from this container.
+    // The child is destroyed (tombstoned and removed from registry) after removal.
+    // Returns true if the child was found and removed, false otherwise.
+    // To re-use a child after removal, create a new one via the factory methods.
+    virtual bool RemoveChild(Positionable* child) = 0;
+
     // === Reserved for future expansion ===
-    virtual void _container_reserved1() {}
     virtual void _container_reserved2() {}
     virtual void _container_reserved3() {}
     virtual void _container_reserved4() {}
@@ -588,8 +593,8 @@ struct Root : Container {
 //   Only major version changes break compatibility.
 constexpr uint32_t P3DUI_INTERFACE_VERSION =
     0 * 1000000 +
-    9 * 10000 +
-    5 * 100 +
+    10 * 10000 +
+    0 * 100 +
     0;
 
 struct Interface001 {

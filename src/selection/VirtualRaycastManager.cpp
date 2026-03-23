@@ -4,8 +4,8 @@
 #include "../util/VRNodes.h"
 #include "../log.h"
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
-#include <limits>
 
 namespace Selection {
 
@@ -93,19 +93,6 @@ void VirtualRaycastManager::OnFrameUpdate(float deltaTime)
 
     // Test ray against all candidates each frame
     TestRayAgainstCandidates(origin, direction);
-
-    // Tick down hysteresis timer (must happen after TestRayAgainstCandidates)
-    if (m_pendingClearRef) {
-        m_hysteresisTimer -= deltaTime;
-        if (m_hysteresisTimer <= 0.0f) {
-            // Hysteresis expired — clear hovered ref
-            spdlog::trace("VirtualRaycastManager: Hysteresis expired for {:08X}", m_pendingClearRef->GetFormID());
-            m_hoveredRef = nullptr;
-            m_hoveredDistance = 0.0f;
-            m_pendingClearRef = nullptr;
-            m_hysteresisTimer = 0.0f;
-        }
-    }
 }
 
 void VirtualRaycastManager::Clear()
@@ -113,8 +100,6 @@ void VirtualRaycastManager::Clear()
     m_visibleRefs.clear();
     m_hoveredRef = nullptr;
     m_hoveredDistance = 0.0f;
-    m_pendingClearRef = nullptr;
-    m_hysteresisTimer = 0.0f;
 }
 
 bool VirtualRaycastManager::IsVirtualRaycastCandidate(RE::TESObjectREFR* ref)
@@ -226,7 +211,7 @@ void VirtualRaycastManager::ScanCandidates()
     }
 
     // Populate visible refs: all within final radius, capped at kMaxVisibleRefs
-    size_t limit = std::min(count, static_cast<size_t>(kMaxVisibleRefs));
+    size_t limit = count < static_cast<size_t>(kMaxVisibleRefs) ? count : static_cast<size_t>(kMaxVisibleRefs);
     m_visibleRefs.reserve(limit);
     for (size_t i = 0; i < limit; ++i) {
         m_visibleRefs.push_back(m_candidates[i].ref);
@@ -241,7 +226,7 @@ void VirtualRaycastManager::TestRayAgainstCandidates(const RE::NiPoint3& origin,
     // NOTE: m_visibleRefs is populated by ScanCandidates() (proximity-based), not here
 
     RE::TESObjectREFR* frameHoveredRef = nullptr;
-    float frameHoveredDistance = (std::numeric_limits<float>::max)();
+    float frameHoveredDistance = FLT_MAX;
 
     for (auto& candidate : m_candidates) {
         if (!candidate.ref || candidate.ref->IsDisabled() || candidate.ref->IsDeleted()) {
@@ -251,34 +236,17 @@ void VirtualRaycastManager::TestRayAgainstCandidates(const RE::NiPoint3& origin,
         // Update cached position (refs could theoretically move)
         candidate.position = candidate.ref->GetPosition();
 
-        // Test selection sphere — closest hit becomes hovered
-        float selT = RaySphereIntersect(origin, direction, candidate.position, kSelectionSphereRadius);
+        // Sphere-size hysteresis: use larger radius to retain hover, smaller to acquire
+        float radius = (candidate.ref == m_hoveredRef) ? kUnhoverSphereRadius : kSelectionSphereRadius;
+        float selT = RaySphereIntersect(origin, direction, candidate.position, radius);
         if (selT >= 0.0f && selT < frameHoveredDistance) {
             frameHoveredRef = candidate.ref;
             frameHoveredDistance = selT;
         }
     }
 
-    UpdateHysteresis(0.0f, frameHoveredRef, frameHoveredDistance);
-}
-
-void VirtualRaycastManager::UpdateHysteresis(float /*deltaTime*/, RE::TESObjectREFR* frameHoveredRef, float frameHoveredDistance)
-{
-    if (frameHoveredRef) {
-        // We have a hit this frame — update hovered ref, cancel any pending clear
-        m_hoveredRef = frameHoveredRef;
-        m_hoveredDistance = frameHoveredDistance;
-        m_pendingClearRef = nullptr;
-        m_hysteresisTimer = 0.0f;
-
-    } else if (m_hoveredRef && !m_pendingClearRef) {
-        // No hit this frame, but we had one and no hysteresis active yet — start countdown
-        // The hovered ref stays reported during the countdown (prevents flicker)
-        // Timer is decremented in OnFrameUpdate after this call
-        m_pendingClearRef = m_hoveredRef;
-        m_hysteresisTimer = kHysteresisTime;
-    }
-    // If m_pendingClearRef is already set, the timer countdown in OnFrameUpdate handles expiry
+    m_hoveredRef = frameHoveredRef;
+    m_hoveredDistance = frameHoveredDistance;
 }
 
 } // namespace Selection
