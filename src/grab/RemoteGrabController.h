@@ -14,6 +14,7 @@
 #include <RE/T/TESObjectLIGH.h>
 #include <RE/E/ExtraRadius.h>
 #include <RE/E/ExtraLight.h>
+#include <RE/N/NiPointLight.h>
 #include <vector>
 
 namespace Grab {

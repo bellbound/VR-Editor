@@ -6,6 +6,7 @@
 #include "visuals/ObjectHighlighter.h"
 #include "ui/SelectionMenu.h"
 #include "ui/GalleryMenu.h"
+#include "ui/ObjectHandleVisualizer.h"
 #include "log.h"
 
 TutorialManager* TutorialManager::GetSingleton()
@@ -181,6 +182,7 @@ void TutorialManager::ExitEditMode()
         // Close menus
         SelectionMenu::GetSingleton()->OnEditModeExit();
         GalleryMenu::GetSingleton()->OnEditModeExit();
+        ObjectHandleVisualizer::GetSingleton()->OnEditModeExit();
 
         editModeManager->Exit();
         spdlog::info("TutorialManager: Exited edit mode");

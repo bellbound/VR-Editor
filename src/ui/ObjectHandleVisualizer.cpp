@@ -57,6 +57,34 @@ void ObjectHandleVisualizer::Shutdown()
     spdlog::info("ObjectHandleVisualizer shutdown");
 }
 
+void ObjectHandleVisualizer::OnEditModeExit()
+{
+    // Hide all active icon slots
+    for (auto& slot : m_iconSlots) {
+        if (slot.active && slot.element) {
+            slot.element->SetScale(0.0f);
+            slot.element->SetVisible(false);
+        }
+        slot.assignedFormId = 0;
+        slot.active = false;
+    }
+
+    if (m_root) {
+        m_root->SetVisible(false);
+    }
+
+    spdlog::info("ObjectHandleVisualizer::OnEditModeExit - Visuals hidden");
+}
+
+void ObjectHandleVisualizer::OnEditModeEnter()
+{
+    // Re-show root only if light selection is enabled and visuals were already created
+    if (m_visualsCreated && m_root && Selection::VirtualRaycastManager::IsLightSelectionEnabled()) {
+        m_root->SetVisible(true);
+        spdlog::info("ObjectHandleVisualizer::OnEditModeEnter - Root shown (light selection enabled)");
+    }
+}
+
 void ObjectHandleVisualizer::EnsureVisualsCreated()
 {
     if (m_visualsCreated) {
@@ -84,9 +112,9 @@ void ObjectHandleVisualizer::EnsureVisualsCreated()
     m_iconSlots.clear();
     m_iconSlots.reserve(kMaxVisibleIcons);
     for (int i = 0; i < kMaxVisibleIcons; ++i) {
-        std::string elementId = fmt::format("obj_handle_{}", i);
+        std::string elementId = fmt::format("obj_handle_{}", m_nextElementId++);
         P3DUI::ElementConfig cfg = P3DUI::ElementConfig::Default(elementId.c_str());
-        cfg.texturePath = kLitTexture;
+        cfg.texturePath = kDefaultTexture;
         cfg.scale = kIconScale;
         cfg.facingMode = P3DUI::FacingMode::YawOnly;
         cfg.smoothingFactor = kSmoothingFactor;
@@ -99,7 +127,7 @@ void ObjectHandleVisualizer::EnsureVisualsCreated()
 
         m_root->AddChild(elem);
         elem->SetVisible(false);
-        m_iconSlots.push_back({elem, 0, false});
+        m_iconSlots.push_back({elem, 0, false, HandleState::Lit});
     }
 
     m_root->SetVisible(true);
@@ -156,7 +184,7 @@ void ObjectHandleVisualizer::OnFrameUpdate(float deltaTime)
         UpdateSlotAssignments();
     }
 
-    // Position and texture updates run every frame (important during RemotePlacement)
+    // Position and visual state updates run every frame (important during RemotePlacement)
     UpdateActiveSlots();
 }
 
@@ -220,7 +248,6 @@ void ObjectHandleVisualizer::UpdateActiveSlots()
         }
 
         // Look up the ref for this slot to update its position
-        // Check if it's in the visible refs or selection
         RE::TESObjectREFR* ref = nullptr;
 
         // Check virtual raycast visible refs
@@ -249,17 +276,69 @@ void ObjectHandleVisualizer::UpdateActiveSlots()
         RE::NiPoint3 pos = ref->GetPosition();
         slot.element->SetLocalPosition(pos.x, pos.y, pos.z);
 
-        // Update texture: hovered or selected → highlighted, otherwise → lit
-        // 3DUI requires a visibility cycle (hide → SetTexture → show) to re-apply textures
-        bool isHighlighted = (slot.assignedFormId == hoveredFormId) ||
-                             selectionState->IsSelected(slot.assignedFormId);
-
-        if (isHighlighted != slot.highlighted) {
-            slot.element->SetVisible(false);
-            slot.element->SetTexture(isHighlighted ? kHoveredTexture : kLitTexture);
-            slot.element->SetVisible(true);
-            slot.highlighted = isHighlighted;
+        // Determine desired visual state (priority: selected > hovered > lit)
+        HandleState desiredState = HandleState::Lit;
+        if (selectionState->IsSelected(slot.assignedFormId)) {
+            desiredState = HandleState::Selected;
+        } else if (slot.assignedFormId == hoveredFormId) {
+            desiredState = HandleState::Hovered;
         }
+
+        // Swap element if state changed (destroy + recreate with correct texture)
+        if (desiredState != slot.state) {
+            SwapSlotTexture(slot, desiredState);
+        }
+    }
+}
+
+void ObjectHandleVisualizer::SwapSlotTexture(IconSlot& slot, HandleState newState)
+{
+    auto* api = P3DUI::GetInterface001();
+    if (!api || !m_root || !slot.element) {
+        return;
+    }
+
+    // Remember position before destroying
+    RE::NiPoint3 pos;
+    // We can't read position back from the element, so we read from the ref
+    // But we just set it above in UpdateActiveSlots, so just recreate at same spot
+
+    // Remove old element (destroys it)
+    m_root->RemoveChild(slot.element);
+    slot.element = nullptr;
+
+    // Create new element with correct texture
+    std::string elementId = fmt::format("obj_handle_{}", m_nextElementId++);
+    P3DUI::ElementConfig cfg = P3DUI::ElementConfig::Default(elementId.c_str());
+    cfg.texturePath = GetTextureForState(newState);
+    cfg.scale = kIconScale;
+    cfg.facingMode = P3DUI::FacingMode::YawOnly;
+    cfg.smoothingFactor = kSmoothingFactor;
+
+    auto* newElem = api->CreateElement(cfg);
+    if (!newElem) {
+        spdlog::error("ObjectHandleVisualizer: Failed to create replacement element");
+        slot.active = false;
+        slot.assignedFormId = 0;
+        slot.state = HandleState::Lit;
+        return;
+    }
+
+    m_root->AddChild(newElem);
+    // Position will be set on next frame by UpdateActiveSlots
+    newElem->SetVisible(true);
+    newElem->SetScale(kIconScale);
+
+    slot.element = newElem;
+    slot.state = newState;
+}
+
+const char* ObjectHandleVisualizer::GetTextureForState(HandleState state)
+{
+    switch (state) {
+        case HandleState::Hovered:  return kHoveredTexture;
+        case HandleState::Selected: return kSelectedTexture;
+        default:                    return kDefaultTexture;
     }
 }
 
@@ -292,13 +371,18 @@ void ObjectHandleVisualizer::ReleaseSlot(int index)
     }
     slot.assignedFormId = 0;
     slot.active = false;
-    slot.highlighted = false;
+    slot.state = HandleState::Lit;
 }
 
 void ObjectHandleVisualizer::AssignSlot(int index, RE::TESObjectREFR* ref)
 {
     auto& slot = m_iconSlots[index];
     RE::NiPoint3 pos = ref->GetPosition();
+
+    // If slot has a non-Lit element from a previous assignment, swap back to Lit
+    if (slot.state != HandleState::Lit) {
+        SwapSlotTexture(slot, HandleState::Lit);
+    }
 
     // hide → move → scale 0 → show → target scale (smooth pop-in)
     slot.element->SetVisible(false);
@@ -309,5 +393,5 @@ void ObjectHandleVisualizer::AssignSlot(int index, RE::TESObjectREFR* ref)
 
     slot.assignedFormId = ref->GetFormID();
     slot.active = true;
-    slot.highlighted = false;
+    slot.state = HandleState::Lit;
 }

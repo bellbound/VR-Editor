@@ -1107,10 +1107,18 @@ void RemoteGrabController::FinalizePositions()
         obj.ref->SetScale(finalScale);
         obj.ref->Update3DPosition(true);
 
-        // Apply final light radius via ExtraRadius (persists through Disable/Enable cycle)
+        // Persist light radius via ExtraRadius before the Disable/Enable cycle.
+        // The engine reads ExtraRadius when rebuilding the NiLight during Enable().
         if (m_lightRadiusMode && !m_objects.empty() && obj.ref == m_objects[0].ref) {
-            ApplyLightRadius(obj.ref, m_currentLightRadius);
-            spdlog::info("RemoteGrabController: Applied light radius={:.1f} to {:08X}", m_currentLightRadius, obj.formId);
+            auto* extraRadius = obj.ref->extraList.GetByType<RE::ExtraRadius>();
+            if (extraRadius) {
+                extraRadius->radius = m_currentLightRadius;
+            } else {
+                auto* newExtra = RE::BSExtraData::Create<RE::ExtraRadius>();
+                newExtra->radius = m_currentLightRadius;
+                obj.ref->extraList.Add(newExtra);
+            }
+            spdlog::info("RemoteGrabController: Set ExtraRadius={:.1f} on {:08X}", m_currentLightRadius, obj.formId);
         }
 
         spdlog::info("RemoteGrabController: Finalized {:08X} with lossless Euler (deltaZ={:.3f}, groundSnapped={}, leftHandRot={}, scale={:.3f})",
@@ -1401,21 +1409,18 @@ void RemoteGrabController::ApplyLightRadius(RE::TESObjectREFR* ref, float radius
         return;
     }
 
-    // 1. Update or create ExtraRadius for per-instance persistence
-    auto* extraRadius = ref->extraList.GetByType<RE::ExtraRadius>();
-    if (extraRadius) {
-        extraRadius->radius = radius;
-    } else {
-        auto* newExtra = new RE::ExtraRadius();
-        newExtra->radius = radius;
-        ref->extraList.Add(newExtra);
-    }
-
-    // 2. Update runtime NiLight for immediate visual feedback
+    // Update runtime NiPointLight via the engine's own function.
+    // SetLightAttenuation properly updates both the NiLight radius AND the
+    // NiPointLight attenuation coefficients (const/linear/quadratic) in sync.
+    // Directly writing runtimeData.radius without updating attenuation produces
+    // visually broken lights (wrong falloff, possibly color corruption).
     auto* extraLight = ref->extraList.GetByType<RE::ExtraLight>();
     if (extraLight && extraLight->lightData && extraLight->lightData->light) {
-        auto& runtimeData = extraLight->lightData->light->GetLightRuntimeData();
-        runtimeData.radius = { radius, radius, radius };
+        auto* niLight = extraLight->lightData->light.get();
+        auto* pointLight = netimmerse_cast<RE::NiPointLight*>(niLight);
+        if (pointLight) {
+            pointLight->SetLightAttenuation(radius);
+        }
     }
 }
 

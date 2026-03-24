@@ -8,6 +8,7 @@
 #include "visuals/ObjectHighlighter.h"
 #include "ui/SelectionMenu.h"
 #include "ui/GalleryMenu.h"
+#include "ui/ObjectHandleVisualizer.h"
 #include "log.h"
 #include <cmath>
 
@@ -158,6 +159,9 @@ bool EditModeTransitioner::OnTriggerPressed(bool isLeft, bool isReleased, vr::EV
                 // Close the gallery menu if open
                 GalleryMenu::GetSingleton()->OnEditModeExit();
 
+                // Hide light visualization icons
+                ObjectHandleVisualizer::GetSingleton()->OnEditModeExit();
+
                 editModeManager->Exit();
             } else {
                 // Check if quick edit entry is enabled
@@ -173,6 +177,9 @@ bool EditModeTransitioner::OnTriggerPressed(bool isLeft, bool isReleased, vr::EV
 
                 // Open the selection menu
                 SelectionMenu::GetSingleton()->OnEditModeEnter();
+
+                // Restore light visualization if enabled
+                ObjectHandleVisualizer::GetSingleton()->OnEditModeEnter();
 
                 // Show tutorial on first use (this handles showing intro message
                 // and all subsequent tutorial flow via message boxes)

@@ -4,6 +4,7 @@
 #include "../visuals/ObjectHighlighter.h"
 #include "../ui/SelectionMenu.h"
 #include "../ui/GalleryMenu.h"
+#include "../ui/ObjectHandleVisualizer.h"
 #include "../persistence/AddedObjectsParser.h"
 #include "../persistence/AddedObjectsSpawner.h"
 #include "../persistence/BaseObjectSwapperParser.h"
@@ -27,12 +28,14 @@ void ToggleEditMode(RE::StaticFunctionTag*)
         ObjectHighlighter::UnhighlightAll();
         SelectionMenu::GetSingleton()->OnEditModeExit();
         GalleryMenu::GetSingleton()->OnEditModeExit();
+        ObjectHandleVisualizer::GetSingleton()->OnEditModeExit();
         mgr->Exit();
         spdlog::info("VRBuilderNativePapyrusAPI: Exited edit mode via ToggleEditMode");
     } else {
         // Enter edit mode
         mgr->Enter();
         SelectionMenu::GetSingleton()->OnEditModeEnter();
+        ObjectHandleVisualizer::GetSingleton()->OnEditModeEnter();
         spdlog::info("VRBuilderNativePapyrusAPI: Entered edit mode via ToggleEditMode");
     }
 }

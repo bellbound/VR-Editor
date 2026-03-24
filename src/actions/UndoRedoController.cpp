@@ -7,6 +7,7 @@
 #include "../util/PositioningUtil.h"
 #include "../persistence/ChangedObjectRegistry.h"
 #include "../log.h"
+#include <RE/B/BSExtraData.h>
 #include <RE/E/ExtraRadius.h>
 #include <cmath>
 #include <optional>
@@ -183,8 +184,9 @@ bool UndoRedoController::CheckDoubleTap(vr::EVRButtonId buttonId)
     return false;
 }
 
-// Apply light radius via ExtraRadius if the action recorded a radius change.
-// Must be called BEFORE ApplyTransformWithEuler since Disable/Enable rebuilds 3D from extra data.
+// Set ExtraRadius on a reference if the action recorded a radius change.
+// Must be called BEFORE ApplyTransformWithEuler since that function's Disable/Enable
+// cycle rebuilds the NiLight from extra data (including ExtraRadius).
 static void ApplyLightRadiusIfPresent(RE::FormID formId, const std::optional<float>& radius)
 {
     if (!radius.has_value()) {
@@ -204,12 +206,12 @@ static void ApplyLightRadiusIfPresent(RE::FormID formId, const std::optional<flo
     if (extraRadius) {
         extraRadius->radius = *radius;
     } else {
-        auto* newExtra = new RE::ExtraRadius();
+        auto* newExtra = RE::BSExtraData::Create<RE::ExtraRadius>();
         newExtra->radius = *radius;
         ref->extraList.Add(newExtra);
     }
 
-    spdlog::trace("UndoRedoController: Applied light radius={:.1f} to {:08X}", *radius, formId);
+    spdlog::trace("UndoRedoController: Set ExtraRadius={:.1f} on {:08X}", *radius, formId);
 }
 
 void UndoRedoController::PerformUndo()

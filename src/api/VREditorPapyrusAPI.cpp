@@ -4,6 +4,7 @@
 #include "../visuals/ObjectHighlighter.h"
 #include "../ui/SelectionMenu.h"
 #include "../ui/GalleryMenu.h"
+#include "../ui/ObjectHandleVisualizer.h"
 #include "../log.h"
 
 namespace API {
@@ -31,6 +32,7 @@ void ExitEditMode(RE::StaticFunctionTag*)
         ObjectHighlighter::UnhighlightAll();
         SelectionMenu::GetSingleton()->OnEditModeExit();
         GalleryMenu::GetSingleton()->OnEditModeExit();
+        ObjectHandleVisualizer::GetSingleton()->OnEditModeExit();
         mgr->Exit();
         spdlog::info("VREditorPapyrusAPI: Exited edit mode via Papyrus");
     }
