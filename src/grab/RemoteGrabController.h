@@ -97,7 +97,7 @@ public:
     static constexpr float kScaleSpeed = 1.0f;             // Scale multiplier change per second
     static constexpr float kMinScale = 0.1f;               // Minimum allowed scale
     static constexpr float kMaxScale = 10.0f;             // Maximum allowed scale
-    static constexpr float kLightRadiusSpeed = 500.0f;     // Radius units per second
+    static constexpr float kLightRadiusSpeed = 300.0f;     // Radius units per second
     static constexpr float kMinLightRadius = 32.0f;        // Minimum light radius
     static constexpr float kMaxLightRadius = 8192.0f;      // Maximum light radius
 
