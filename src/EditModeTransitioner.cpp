@@ -168,7 +168,7 @@ bool EditModeTransitioner::OnTriggerPressed(bool isLeft, bool isReleased, vr::EV
                 // Block edit mode entry if 3DUI dependency is incompatible
                 if (HealthCheck::GetSingleton()->IsFunctionalityDisabled()) {
                     spdlog::warn("EditModeTransitioner: Edit mode blocked - 3DUI version incompatible");
-                    RE::DebugNotification("VR Editor: Disabled due to incompatible 3DUI version");
+                    HealthCheck::GetSingleton()->MayShowDependenciesErrorMessage();
                     m_hasLastTrigger = false;
                     return true;  // Consume input but don't enter edit mode
                 }

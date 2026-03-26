@@ -20,6 +20,7 @@ void EnterEditMode(RE::StaticFunctionTag*)
 {
     if (HealthCheck::GetSingleton()->IsFunctionalityDisabled()) {
         spdlog::warn("VREditorPapyrusAPI: EnterEditMode blocked - 3DUI version incompatible");
+        HealthCheck::GetSingleton()->MayShowDependenciesErrorMessage();
         return;
     }
 

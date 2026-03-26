@@ -280,9 +280,6 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 			spdlog::warn("Displayed user notification: SkyrimVRTools missing");
 		}
 
-		// Check dependency versions and notify user if incompatible (only shows once per session)
-		HealthCheck::GetSingleton()->MayShowDependenciesErrorMessage();
-
 		break;
 
 	case SKSE::MessagingInterface::kNewGame:
@@ -297,9 +294,6 @@ void MessageHandler(SKSE::MessagingInterface::Message* a_msg)
 			RE::DebugNotification("InGamePatcher VR: SkyrimVRTools not found - VR interactions disabled");
 			spdlog::warn("Displayed user notification: SkyrimVRTools missing");
 		}
-
-		// Check dependency versions and notify user if incompatible (only shows once per session)
-		HealthCheck::GetSingleton()->MayShowDependenciesErrorMessage();
 
 		break;
 	}

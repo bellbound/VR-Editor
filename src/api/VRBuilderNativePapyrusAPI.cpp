@@ -36,6 +36,7 @@ void ToggleEditMode(RE::StaticFunctionTag*)
         // Block entry if 3DUI is incompatible
         if (HealthCheck::GetSingleton()->IsFunctionalityDisabled()) {
             spdlog::warn("VRBuilderNativePapyrusAPI: ToggleEditMode blocked - 3DUI version incompatible");
+            HealthCheck::GetSingleton()->MayShowDependenciesErrorMessage();
             return;
         }
 
