@@ -148,7 +148,8 @@ private:
     // Returns: processed X and Y values (only dominant axis is non-zero)
     void ProcessThumbstickInput(float& outX, float& outY) const;
 
-    // Light radius helpers — read/write per-instance radius via ExtraRadius
+    // Light radius helpers — read/write per-instance radius via ExtraRadius (delta from base)
+    float GetBaseFormRadius(RE::TESObjectREFR* ref) const;
     float ReadLightRadius(RE::TESObjectREFR* ref) const;
     void ApplyLightRadius(RE::TESObjectREFR* ref, float radius);
 

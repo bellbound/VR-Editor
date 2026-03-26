@@ -410,7 +410,7 @@ void SaveGameDataManager::OnRevert(SKSE::SerializationInterface* /*intfc*/)
     gallery->Clear();
 
     // Reset editor settings to defaults
-    Selection::VirtualRaycastManager::SetLightSelectionEnabled(false);
+    Selection::VirtualRaycastManager::SetLightSelectionEnabled(true);
 
     spdlog::info("SaveGameDataManager: Revert complete");
 }

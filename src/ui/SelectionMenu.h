@@ -21,6 +21,8 @@
 #include "../selection/VirtualRaycastManager.h"
 #include "SelectionMenuHelpers.h"
 #include "GalleryMenu.h"
+#include "ObjectHandleVisualizer.h"
+#include "../visuals/ObjectHighlighter.h"
 #include "openvr.h"
 #include "MenuStateManager.h"
 
@@ -472,6 +474,10 @@ private:
         // === Tool Row Actions ===
         if (id == "tool_close") {
             spdlog::info("SelectionMenu: Close tool selected - exiting edit mode");
+            ObjectHighlighter::UnhighlightAll();
+            OnEditModeExit();
+            GalleryMenu::GetSingleton()->OnEditModeExit();
+            ObjectHandleVisualizer::GetSingleton()->OnEditModeExit();
             EditModeManager::GetSingleton()->Exit();
             return;
         }

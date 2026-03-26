@@ -1110,7 +1110,9 @@ void RemoteGrabController::FinalizePositions()
         // Apply final light radius via ExtraRadius (persists through Disable/Enable cycle)
         if (m_lightRadiusMode && !m_objects.empty() && obj.ref == m_objects[0].ref) {
             ApplyLightRadius(obj.ref, m_currentLightRadius);
-            spdlog::info("RemoteGrabController: Applied light radius={:.1f} to {:08X}", m_currentLightRadius, obj.formId);
+            float baseRad = GetBaseFormRadius(obj.ref);
+            spdlog::info("RemoteGrabController: Applied light radius={:.1f} to {:08X} (base={:.1f}, delta={:.1f}, scale={:.3f})",
+                m_currentLightRadius, obj.formId, baseRad, m_currentLightRadius - baseRad, obj.ref->GetScale());
         }
 
         spdlog::info("RemoteGrabController: Finalized {:08X} with lossless Euler (deltaZ={:.3f}, groundSnapped={}, leftHandRot={}, scale={:.3f})",
@@ -1124,6 +1126,25 @@ void RemoteGrabController::FinalizePositions()
             // Disable/Enable cycle forces Havok to rebuild collision at new position
             obj.ref->Disable();
             obj.ref->Enable(false);
+
+            // Log what the engine actually produced after rebuilding the NiLight
+            if (m_lightRadiusMode && !m_objects.empty() && obj.ref == m_objects[0].ref) {
+                auto* extraLight = obj.ref->extraList.GetByType<RE::ExtraLight>();
+                if (extraLight && extraLight->lightData && extraLight->lightData->light) {
+                    auto& rtData = extraLight->lightData->light->GetLightRuntimeData();
+                    spdlog::info("RemoteGrabController: Post-Enable NiLight radius=({:.1f},{:.1f},{:.1f}), fade={:.3f} for {:08X}",
+                        rtData.radius.x, rtData.radius.y, rtData.radius.z, rtData.fade, obj.formId);
+                    auto* pointLight = netimmerse_cast<RE::NiPointLight*>(extraLight->lightData->light.get());
+                    if (pointLight) {
+                        auto& ptData = pointLight->GetPointLightRuntimeData();
+                        spdlog::info("RemoteGrabController: Post-Enable attenuation const={:.6f} linear={:.6f} quad={:.6f}",
+                            ptData.constAttenuation, ptData.linearAttenuation, ptData.quadraticAttenuation);
+                    }
+                }
+                auto* extraRadius = obj.ref->extraList.GetByType<RE::ExtraRadius>();
+                spdlog::info("RemoteGrabController: Post-Enable ExtraRadius={:.1f}, requested={:.1f}",
+                    extraRadius ? extraRadius->radius : -1.0f, m_currentLightRadius);
+            }
 
             // Refresh highlight - ObjectHighlighter will automatically defer if 3D isn't ready yet
             Selection::SelectionState::GetSingleton()->RefreshHighlightIfSelected(obj.ref);
@@ -1371,32 +1392,39 @@ void RemoteGrabController::RemoveLeftHandUndoEntries()
     m_leftHandUndoEntries.clear();
 }
 
+float RemoteGrabController::GetBaseFormRadius(RE::TESObjectREFR* ref) const
+{
+    if (ref) {
+        auto* baseObj = ref->GetBaseObject();
+        if (baseObj) {
+            auto* lightForm = baseObj->As<RE::TESObjectLIGH>();
+            if (lightForm) {
+                return static_cast<float>(lightForm->data.radius);
+            }
+        }
+    }
+    return 256.0f;
+}
+
 float RemoteGrabController::ReadLightRadius(RE::TESObjectREFR* ref) const
 {
     if (!ref) {
         return 256.0f;
     }
 
-    // Check ExtraRadius first (per-instance override takes priority)
+    float baseRadius = GetBaseFormRadius(ref);
+
+    // ExtraRadius is a delta from the base form radius, not an absolute value
     auto* extraRadius = ref->extraList.GetByType<RE::ExtraRadius>();
     if (extraRadius) {
-        spdlog::info("RemoteGrabController: Found ExtraRadius={:.1f} on {:08X}", extraRadius->radius, ref->GetFormID());
-        return extraRadius->radius;
+        float effectiveRadius = baseRadius + extraRadius->radius;
+        spdlog::info("RemoteGrabController: Found ExtraRadius delta={:.1f} on {:08X}, base={:.1f}, effective={:.1f}",
+            extraRadius->radius, ref->GetFormID(), baseRadius, effectiveRadius);
+        return effectiveRadius;
     }
 
-    spdlog::info("RemoteGrabController: No ExtraRadius on {:08X}, falling back to base form", ref->GetFormID());
-
-    // Fall back to base form radius
-    auto* baseObj = ref->GetBaseObject();
-    if (baseObj) {
-        auto* lightForm = baseObj->As<RE::TESObjectLIGH>();
-        if (lightForm) {
-            return static_cast<float>(lightForm->data.radius);
-        }
-    }
-
-    spdlog::warn("RemoteGrabController: Could not read light radius for {:08X}, using fallback 256.0", ref->GetFormID());
-    return 256.0f;
+    spdlog::info("RemoteGrabController: No ExtraRadius on {:08X}, using base form radius={:.1f}", ref->GetFormID(), baseRadius);
+    return baseRadius;
 }
 
 void RemoteGrabController::ApplyLightRadius(RE::TESObjectREFR* ref, float radius)
@@ -1406,16 +1434,20 @@ void RemoteGrabController::ApplyLightRadius(RE::TESObjectREFR* ref, float radius
     }
 
     // 1. Update or create ExtraRadius for per-instance persistence
+    // ExtraRadius stores a delta from base form radius, not an absolute value
+    float baseRadius = GetBaseFormRadius(ref);
+    float delta = radius - baseRadius;
+
     auto* extraRadius = ref->extraList.GetByType<RE::ExtraRadius>();
     if (extraRadius) {
-        extraRadius->radius = radius;
+        extraRadius->radius = delta;
     } else {
         auto* newExtra = RE::BSExtraData::Create<RE::ExtraRadius>();
-        newExtra->radius = radius;
+        newExtra->radius = delta;
         ref->extraList.Add(newExtra);
     }
 
-    // 2. Update runtime NiLight for immediate visual feedback
+    // 2. Update runtime NiLight for immediate visual feedback (absolute value)
     auto* extraLight = ref->extraList.GetByType<RE::ExtraLight>();
     if (extraLight && extraLight->lightData && extraLight->lightData->light) {
         auto& runtimeData = extraLight->lightData->light->GetLightRuntimeData();

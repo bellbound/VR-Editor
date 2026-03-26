@@ -113,7 +113,7 @@ private:
     float m_hoveredDistance = 0.0f;
 
     // Toggle state (persisted to cosave)
-    static inline bool s_lightSelectionEnabled = false;
+    static inline bool s_lightSelectionEnabled = true;
 };
 
 } // namespace Selection
