@@ -1,5 +1,6 @@
 #include "EditModeTransitioner.h"
 #include "EditModeManager.h"
+#include "HealthCheck.h"
 #include "TutorialManager.h"
 #include "FrameCallbackDispatcher.h"
 #include "util/Raycast.h"
@@ -164,6 +165,14 @@ bool EditModeTransitioner::OnTriggerPressed(bool isLeft, bool isReleased, vr::EV
 
                 editModeManager->Exit();
             } else {
+                // Block edit mode entry if 3DUI dependency is incompatible
+                if (HealthCheck::GetSingleton()->IsFunctionalityDisabled()) {
+                    spdlog::warn("EditModeTransitioner: Edit mode blocked - 3DUI version incompatible");
+                    RE::DebugNotification("VR Editor: Disabled due to incompatible 3DUI version");
+                    m_hasLastTrigger = false;
+                    return true;  // Consume input but don't enter edit mode
+                }
+
                 // Check if quick edit entry is enabled
                 if (!tutorialManager->IsQuickEditEnabled()) {
                     spdlog::info("EditModeTransitioner: Quick edit disabled, ignoring");

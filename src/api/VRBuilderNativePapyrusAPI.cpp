@@ -1,5 +1,6 @@
 #include "VRBuilderNativePapyrusAPI.h"
 #include "../EditModeManager.h"
+#include "../HealthCheck.h"
 #include "../util/PositioningUtil.h"
 #include "../visuals/ObjectHighlighter.h"
 #include "../ui/SelectionMenu.h"
@@ -32,6 +33,12 @@ void ToggleEditMode(RE::StaticFunctionTag*)
         mgr->Exit();
         spdlog::info("VRBuilderNativePapyrusAPI: Exited edit mode via ToggleEditMode");
     } else {
+        // Block entry if 3DUI is incompatible
+        if (HealthCheck::GetSingleton()->IsFunctionalityDisabled()) {
+            spdlog::warn("VRBuilderNativePapyrusAPI: ToggleEditMode blocked - 3DUI version incompatible");
+            return;
+        }
+
         // Enter edit mode
         mgr->Enter();
         SelectionMenu::GetSingleton()->OnEditModeEnter();

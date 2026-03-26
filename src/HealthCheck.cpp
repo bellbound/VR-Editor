@@ -79,6 +79,12 @@ bool HealthCheck::AreDependenciesUpToDate()
     return true;
 }
 
+bool HealthCheck::IsFunctionalityDisabled()
+{
+    // Trigger check if not done yet, then return inverse
+    return !AreDependenciesUpToDate();
+}
+
 void HealthCheck::MayShowDependenciesErrorMessage()
 {
     // Only show once per session
@@ -91,16 +97,30 @@ void HealthCheck::MayShowDependenciesErrorMessage()
         return;
     }
 
-    // Show notification and mark as shown
+    // Show message box and mark as shown
     m_errorMessageShown = true;
 
     auto* p3dui = P3DUI::GetInterface001();
     if (!p3dui) {
-        RE::DebugNotification("VR Editor: Required 3DUI.dll is missing!");
-        spdlog::warn("HealthCheck: Displayed notification - 3DUI missing");
+        RE::DebugMessageBox("VR Editor: Required 3DUI.dll is missing!\n\nVR Editor functionality has been disabled. Please install 3DUI.");
+        spdlog::error("HealthCheck: Displayed message box - 3DUI missing. Functionality disabled.");
     } else {
-        RE::DebugNotification("VR Editor: Incompatible 3DUI version detected!");
-        RE::DebugNotification("VR Editor: Please update 3DUI to a compatible version");
-        spdlog::warn("HealthCheck: Displayed notification - 3DUI version incompatible");
+        uint32_t actualMajor, actualMinor, actualPatch, actualBuild;
+        uint32_t expectedMajor, expectedMinor, expectedPatch, expectedBuild;
+
+        UnpackVersion(p3dui->GetInterfaceVersion(), actualMajor, actualMinor, actualPatch, actualBuild);
+        UnpackVersion(P3DUI::P3DUI_INTERFACE_VERSION, expectedMajor, expectedMinor, expectedPatch, expectedBuild);
+
+        auto msg = fmt::format(
+            "VR Editor: Incompatible 3DUI version!\n\n"
+            "Installed: {}.{}.{}.{}\n"
+            "Required:  {}.{}.{}.{}\n\n"
+            "VR Editor functionality has been disabled.\n"
+            "Please update 3DUI to a compatible version.",
+            actualMajor, actualMinor, actualPatch, actualBuild,
+            expectedMajor, expectedMinor, expectedPatch, expectedBuild);
+
+        RE::DebugMessageBox(msg.c_str());
+        spdlog::error("HealthCheck: Displayed message box - 3DUI version incompatible. Functionality disabled.");
     }
 }

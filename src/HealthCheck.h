@@ -21,9 +21,13 @@ public:
     // Returns true if all dependencies are up to date.
     bool AreDependenciesUpToDate();
 
-    // Shows a user notification if dependencies are incompatible.
+    // Returns true if functionality should be disabled due to dependency issues.
+    // Safe to call frequently - uses cached result from AreDependenciesUpToDate().
+    bool IsFunctionalityDisabled();
+
+    // Shows a message box if dependencies are incompatible.
     // Only displays once per session (tracks state internally).
-    // Call this from OnPostLoadGame.
+    // Call this from OnPostLoadGame / OnNewGame.
     void MayShowDependenciesErrorMessage();
 
 private:

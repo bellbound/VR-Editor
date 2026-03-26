@@ -1,6 +1,7 @@
 #include "VREditorPapyrusAPI.h"
 #include "../EditModeManager.h"
 #include "../EditModeStateManager.h"
+#include "../HealthCheck.h"
 #include "../visuals/ObjectHighlighter.h"
 #include "../ui/SelectionMenu.h"
 #include "../ui/GalleryMenu.h"
@@ -17,6 +18,11 @@ bool IsInEditMode(RE::StaticFunctionTag*)
 
 void EnterEditMode(RE::StaticFunctionTag*)
 {
+    if (HealthCheck::GetSingleton()->IsFunctionalityDisabled()) {
+        spdlog::warn("VREditorPapyrusAPI: EnterEditMode blocked - 3DUI version incompatible");
+        return;
+    }
+
     auto* mgr = EditModeManager::GetSingleton();
     if (!mgr->IsInEditMode()) {
         mgr->Enter();
