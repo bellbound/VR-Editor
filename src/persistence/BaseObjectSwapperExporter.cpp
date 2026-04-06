@@ -148,6 +148,14 @@ BOSTransformEntry BaseObjectSwapperExporter::TransformToBOSEntry(
             formKey);
     }
 
+    // For deleted objects, move underground as safety net.
+    // The Initially Disabled flag should keep them hidden, but some objects
+    // get re-enabled by scripts or enable parents - sinking them ensures
+    // they remain invisible even if that happens.
+    if (isDeleted) {
+        entry.position.z = -10000.0f;
+    }
+
     // Populate metadata from game data (will use stored data if ref not available)
     PopulateEntryMetadata(entry);
 

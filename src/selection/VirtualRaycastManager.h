@@ -69,10 +69,10 @@ public:
     // Configuration
     static constexpr float kSelectionSphereRadius = 25.0f;    // Sphere radius to acquire hover
     static constexpr float kUnhoverSphereRadius = 40.0f;      // Larger sphere radius to retain hover (hysteresis)
-    static constexpr float kMaxScanDistance = 2000.0f;         // Max distance from player to scan refs
-    static constexpr float kBaseVisibilityRadius = 1024.0f;    // Default radius for showing light icons
+    static constexpr float kMaxScanDistance = 2048.0f;         // Max distance from player to scan refs
+    static constexpr float kBaseVisibilityRadius = 2048.0f;    // Default radius for showing light icons
     static constexpr int kMaxVisibleRefs = 32;                 // Max visible refs (matches icon pool size)
-    static constexpr float kScanIntervalSeconds = 0.1f;        // Throttle for ref discovery scan (100ms)
+    static constexpr float kScanIntervalSeconds = 0.25f;        // Throttle for ref discovery scan (100ms)
 
 private:
     VirtualRaycastManager() = default;

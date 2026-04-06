@@ -107,15 +107,33 @@ public:
         root->SetVRAnchor(P3DUI::VRAnchorType::HMD);
         root->SetFacingMode(P3DUI::FacingMode::Full);
 
-        // === Create Gallery ScrollWheel ===
-        P3DUI::ScrollWheelConfig wheelConfig = P3DUI::ScrollWheelConfig::Default("gallery_wheel");
-        wheelConfig.itemSpacing = 12.0f;
-        wheelConfig.ringSpacing = 8.0f;
-        wheelConfig.firstRingSpacing = 15.0f;
+        // === Create Gallery Grid (column-major, horizontal scrolling) ===
+        // Layout modeled on ThreadMenu's RowGrid but as a ColumnGrid with 1.7x spacing
+        P3DUI::ColumnGridConfig gridConfig = P3DUI::ColumnGridConfig::Default("gallery_grid");
+        gridConfig.numRows = 3;               // 3 rows per column
+        gridConfig.columnSpacing = 11.9f;     // 7.0 * 1.7 = 11.9
+        gridConfig.rowSpacing = 11.9f;        // 7.0 * 1.7 = 11.9
+        gridConfig.visibleWidth = 59.5f;      // Half of 119.0
 
-        m_galleryWheel = m_api->CreateScrollWheel(wheelConfig);
-        if (m_galleryWheel) {
-            root->AddChild(m_galleryWheel);
+        m_galleryGrid = m_api->CreateColumnGrid(gridConfig);
+        if (m_galleryGrid) {
+            root->AddChild(m_galleryGrid);
+            m_galleryGrid->SetLocalPosition(0.0f, 0.0f, 15.0f);  // Raise 15 units above origin
+            m_galleryGrid->SetFillDirection(P3DUI::VerticalFill::BottomToTop, P3DUI::HorizontalFill::LeftToRight);
+            m_galleryGrid->SetOrigin(P3DUI::VerticalOrigin::Bottom, P3DUI::HorizontalOrigin::Center);
+        }
+
+        // === Create Central Orb (anchor handle, outside grid so it doesn't scroll) ===
+        P3DUI::ElementConfig orbConfig = P3DUI::ElementConfig::Default("gallery_central_orb");
+        orbConfig.modelPath = "meshes\\3DUI\\orb.nif";
+        orbConfig.scale = 1.2f;
+        orbConfig.facingMode = P3DUI::FacingMode::None;
+        orbConfig.isAnchorHandle = true;
+
+        m_centerOrb = m_api->CreateElement(orbConfig);
+        if (m_centerOrb) {
+            root->AddChild(m_centerOrb);
+            m_centerOrb->SetLocalPosition(0.0f, 0.0f, 0.0f);
         }
 
 
@@ -356,24 +374,13 @@ private:
         // Gallery stays open - user can place multiple items
     }
 
-    // Populate the gallery wheel with items from GalleryManager
+    // Populate the gallery grid with items from GalleryManager
     void PopulateGalleryWheel()
     {
-        if (!m_galleryWheel || !m_api) return;
+        if (!m_galleryGrid || !m_api) return;
 
-        m_galleryWheel->Clear();
-
-        // Central orb anchor handle - closes gallery menu only
-        P3DUI::ElementConfig orbConfig = P3DUI::ElementConfig::Default("gallery_central_orb");
-        orbConfig.modelPath = "meshes\\3DUI\\orb.nif";
-        orbConfig.scale = 1.2f;
-        orbConfig.facingMode = P3DUI::FacingMode::None;
-        orbConfig.isAnchorHandle = true;
-
-        auto* orbHandle = m_api->CreateElement(orbConfig);
-        if (orbHandle) {
-            m_galleryWheel->AddChild(orbHandle);
-        }
+        m_galleryGrid->Clear();
+        m_galleryGrid->ResetScroll();
 
         // Add all gallery items as mesh previews
         auto* gallery = Gallery::GalleryManager::GetSingleton();
@@ -401,11 +408,11 @@ private:
 
             auto* itemElement = m_api->CreateElement(itemConfig);
             if (itemElement) {
-                m_galleryWheel->AddChild(itemElement);
+                m_galleryGrid->AddChild(itemElement);
             }
         }
 
-        spdlog::info("GalleryMenu::PopulateGalleryWheel - Added {} gallery items + central orb",
+        spdlog::info("GalleryMenu::PopulateGalleryWheel - Added {} gallery items to grid",
             items.size());
     }
 
@@ -486,8 +493,9 @@ private:
     }
 
     P3DUI::Interface001* m_api = nullptr;
-    P3DUI::Container* m_galleryWheel = nullptr;
+    P3DUI::ScrollableContainer* m_galleryGrid = nullptr;
     P3DUI::Container* m_toolRow = nullptr;
+    P3DUI::Element* m_centerOrb = nullptr;
     P3DUI::Text* m_itemCountText = nullptr;
 
     // Positioning state

@@ -115,6 +115,7 @@ bool VirtualRaycastManager::IsVirtualRaycastCandidate(RE::TESObjectREFR* ref)
 
     switch (baseObj->GetFormType()) {
         case RE::FormType::Light:
+        case RE::FormType::IdleMarker:
             return true;
         // Future: case RE::FormType::Flora: return true;
         // Future: case RE::FormType::Tree: return true;
