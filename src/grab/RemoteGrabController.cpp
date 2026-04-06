@@ -374,30 +374,15 @@ void RemoteGrabController::OnEnter()
     m_zRotation = 0.0f;
     m_baseRotation = RE::NiMatrix3();  // Identity
 
-    // Snap objects to current laser pointer position
-    RE::NiPoint3 targetCenter = CalculateTargetPosition();
-
-    // Calculate the delta from old center to new center
-    RE::NiPoint3 delta = {
-        targetCenter.x - m_centerPoint.x,
-        targetCenter.y - m_centerPoint.y,
-        targetCenter.z - m_centerPoint.z
+    // Calculate grab offset: vector from ray endpoint to actual object center.
+    // This prevents objects from snapping to the ray endpoint on grab start.
+    // When the user grabs without moving their hand, objects stay in place.
+    RE::NiPoint3 rayEndpoint = CalculateTargetPosition();
+    m_grabOffset = {
+        m_centerPoint.x - rayEndpoint.x,
+        m_centerPoint.y - rayEndpoint.y,
+        m_centerPoint.z - rayEndpoint.z
     };
-
-    // Move all objects by this delta (snapping to laser position)
-    for (auto& obj : m_objects) {
-        if (!obj.ref) continue;
-
-        RE::NiTransform newTransform = obj.initialTransform;
-        newTransform.translate.x += delta.x;
-        newTransform.translate.y += delta.y;
-        newTransform.translate.z += delta.z;
-
-        ApplyTransformToObject(obj.ref, newTransform);
-    }
-
-    // Update stored center point
-    m_centerPoint = targetCenter;
 
     // Initialize smoother with current center
     RE::NiTransform centerTransform;
@@ -715,8 +700,14 @@ void RemoteGrabController::UpdateStandardMode(float deltaTime)
     }
 
     // Calculate target center position and rotation
+    // Apply grab offset so objects track from where they were grabbed, not the ray endpoint
     RE::NiTransform target;
-    target.translate = CalculateTargetPosition();
+    RE::NiPoint3 rayEndpoint = CalculateTargetPosition();
+    target.translate = {
+        rayEndpoint.x + m_grabOffset.x,
+        rayEndpoint.y + m_grabOffset.y,
+        rayEndpoint.z + m_grabOffset.z
+    };
     target.rotate = PositioningUtil::RotationAroundZ(m_zRotation);
     target.scale = 1.0f;
 

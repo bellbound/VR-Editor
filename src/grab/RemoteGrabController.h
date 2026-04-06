@@ -50,7 +50,7 @@ struct RemoteGrabObject {
 // MULTI-SELECTION:
 // - Center point is calculated as: z = min(all z), x/y = average(all x/y)
 // - Each object maintains its offset from center
-// - On enter, objects snap to the laser pointer position
+// - On enter, a grab offset is calculated so objects stay in place
 // - All objects move together maintaining relative positions
 //
 // Controls (right thumbstick while active):
@@ -73,7 +73,7 @@ public:
     bool IsActive() const { return m_isActive; }
 
     // Called by EditModeStateManager when entering remote placement mode
-    // Reads from SelectionState, calculates center, snaps objects to laser position
+    // Reads from SelectionState, calculates center and grab offset (no snap)
     void OnEnter();
 
     // Called by EditModeStateManager when exiting remote placement mode
@@ -184,6 +184,7 @@ private:
 
     // Current state
     float m_distance = 100.0f;              // Current distance from hand along ray
+    RE::NiPoint3 m_grabOffset;              // Offset from ray endpoint to actual group center at grab start
     float m_zRotation = 0.0f;               // Accumulated Z-axis rotation
     RE::NiMatrix3 m_baseRotation;           // Initial rotation (identity for groups)
 
