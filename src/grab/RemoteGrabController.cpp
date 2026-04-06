@@ -912,7 +912,7 @@ void RemoteGrabController::UpdateRayVisualization()
 
     RaycastRenderer::LineParams line;
     line.start = handPos;
-    line.end = m_centerPoint;
+    line.end = m_isNPCMode ? m_centerPoint : CalculateTargetPosition();
 
     if (RaycastRenderer::IsVisible()) {
         RaycastRenderer::Update(line, RaycastRenderer::BeamType::Default);
