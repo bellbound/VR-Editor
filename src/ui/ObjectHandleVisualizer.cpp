@@ -127,7 +127,7 @@ void ObjectHandleVisualizer::EnsureVisualsCreated()
 
         m_root->AddChild(elem);
         elem->SetVisible(false);
-        m_iconSlots.push_back({elem, 0, false, HandleState::Lit});
+        m_iconSlots.push_back({elem, 0, false, HandleState::Lit, RE::FormType::Light});
     }
 
     m_root->SetVisible(true);
@@ -310,7 +310,7 @@ void ObjectHandleVisualizer::SwapSlotTexture(IconSlot& slot, HandleState newStat
     // Create new element with correct texture
     std::string elementId = fmt::format("obj_handle_{}", m_nextElementId++);
     P3DUI::ElementConfig cfg = P3DUI::ElementConfig::Default(elementId.c_str());
-    cfg.texturePath = GetTextureForState(newState);
+    cfg.texturePath = GetTextureForState(newState, slot.formType);
     cfg.scale = kIconScale;
     cfg.facingMode = P3DUI::FacingMode::YawOnly;
     cfg.smoothingFactor = kSmoothingFactor;
@@ -333,8 +333,15 @@ void ObjectHandleVisualizer::SwapSlotTexture(IconSlot& slot, HandleState newStat
     slot.state = newState;
 }
 
-const char* ObjectHandleVisualizer::GetTextureForState(HandleState state)
+const char* ObjectHandleVisualizer::GetTextureForState(HandleState state, RE::FormType formType)
 {
+    if (formType == RE::FormType::IdleMarker) {
+        switch (state) {
+            case HandleState::Hovered:  return kIdlmHoveredTexture;
+            case HandleState::Selected: return kIdlmSelectedTexture;
+            default:                    return kIdlmDefaultTexture;
+        }
+    }
     switch (state) {
         case HandleState::Hovered:  return kHoveredTexture;
         case HandleState::Selected: return kSelectedTexture;
@@ -372,6 +379,7 @@ void ObjectHandleVisualizer::ReleaseSlot(int index)
     slot.assignedFormId = 0;
     slot.active = false;
     slot.state = HandleState::Lit;
+    slot.formType = RE::FormType::Light;
 }
 
 void ObjectHandleVisualizer::AssignSlot(int index, RE::TESObjectREFR* ref)
@@ -379,8 +387,12 @@ void ObjectHandleVisualizer::AssignSlot(int index, RE::TESObjectREFR* ref)
     auto& slot = m_iconSlots[index];
     RE::NiPoint3 pos = ref->GetPosition();
 
+    // Determine base object form type for icon selection
+    auto* baseObj = ref->GetBaseObject();
+    slot.formType = baseObj ? baseObj->GetFormType() : RE::FormType::Light;
+
     // If slot has a non-Lit element from a previous assignment, swap back to Lit
-    if (slot.state != HandleState::Lit) {
+    if (slot.state != HandleState::Lit || slot.formType != RE::FormType::Light) {
         SwapSlotTexture(slot, HandleState::Lit);
     }
 

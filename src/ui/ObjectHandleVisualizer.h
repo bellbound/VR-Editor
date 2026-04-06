@@ -46,9 +46,14 @@ public:
     static constexpr int kMaxVisibleIcons = 32;
     static constexpr float kIconScale = 1.5f;
     static constexpr float kSmoothingFactor = 999.0f;  // Effectively instant (higher = more responsive)
+    // Light icon textures
     static constexpr const char* kDefaultTexture = "textures\\VREditor\\light.dds";
     static constexpr const char* kHoveredTexture = "textures\\VREditor\\light_hovered.dds";
     static constexpr const char* kSelectedTexture = "textures\\VREditor\\light_lit.dds";
+    // Idle marker icon textures
+    static constexpr const char* kIdlmDefaultTexture = "textures\\VREditor\\tpose.dds";
+    static constexpr const char* kIdlmHoveredTexture = "textures\\VREditor\\tpose_hovered.dds";
+    static constexpr const char* kIdlmSelectedTexture = "textures\\VREditor\\tpose_selected.dds";
 
 private:
     ObjectHandleVisualizer() = default;
@@ -68,6 +73,7 @@ private:
         RE::FormID assignedFormId = 0;   // 0 = unassigned/free
         bool active = false;             // true = currently visible at a position
         HandleState state = HandleState::Lit;
+        RE::FormType formType = RE::FormType::Light;  // Base object type (determines icon set)
     };
 
     // Lazily create 3DUI root and element pool on first use
@@ -94,8 +100,8 @@ private:
     // Swap the element on a slot to use a different texture (destroy + recreate)
     void SwapSlotTexture(IconSlot& slot, HandleState newState);
 
-    // Get texture path for a given visual state
-    static const char* GetTextureForState(HandleState state);
+    // Get texture path for a given visual state and form type
+    static const char* GetTextureForState(HandleState state, RE::FormType formType);
 
     bool m_initialized = false;
     bool m_visualsCreated = false;
