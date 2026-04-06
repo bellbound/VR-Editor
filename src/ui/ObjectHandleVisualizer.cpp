@@ -379,7 +379,7 @@ void ObjectHandleVisualizer::ReleaseSlot(int index)
     slot.assignedFormId = 0;
     slot.active = false;
     slot.state = HandleState::Lit;
-    slot.formType = RE::FormType::Light;
+    // Keep formType as-is so AssignSlot can detect texture mismatches
 }
 
 void ObjectHandleVisualizer::AssignSlot(int index, RE::TESObjectREFR* ref)
@@ -389,11 +389,14 @@ void ObjectHandleVisualizer::AssignSlot(int index, RE::TESObjectREFR* ref)
 
     // Determine base object form type for icon selection
     auto* baseObj = ref->GetBaseObject();
-    slot.formType = baseObj ? baseObj->GetFormType() : RE::FormType::Light;
+    RE::FormType newFormType = baseObj ? baseObj->GetFormType() : RE::FormType::Light;
 
-    // If slot has a non-Lit element from a previous assignment, swap back to Lit
-    if (slot.state != HandleState::Lit || slot.formType != RE::FormType::Light) {
+    // Swap texture if state isn't default or form type changed (element still has old texture)
+    if (slot.state != HandleState::Lit || slot.formType != newFormType) {
+        slot.formType = newFormType;
         SwapSlotTexture(slot, HandleState::Lit);
+    } else {
+        slot.formType = newFormType;
     }
 
     // hide → move → scale 0 → show → target scale (smooth pop-in)
