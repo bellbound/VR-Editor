@@ -199,6 +199,11 @@ void ObjectHandleVisualizer::UpdateSlotAssignments()
     const auto& visibleRefs = virtualManager->GetVisibleRefs();
     for (auto* ref : visibleRefs) {
         if (ref) {
+            // Idle marker handles disabled for now — re-enable by removing this guard
+            auto* baseObj = ref->GetBaseObject();
+            if (baseObj && baseObj->GetFormType() == RE::FormType::IdleMarker) {
+                continue;
+            }
             desiredRefs[ref->GetFormID()] = ref;
         }
     }
@@ -207,6 +212,11 @@ void ObjectHandleVisualizer::UpdateSlotAssignments()
     auto* selectionState = Selection::SelectionState::GetSingleton();
     for (const auto& info : selectionState->GetSelection()) {
         if (info.ref && Selection::VirtualRaycastManager::IsVirtualRaycastCandidate(info.ref)) {
+            // Idle marker handles disabled for now — re-enable by removing this guard
+            auto* baseObj = info.ref->GetBaseObject();
+            if (baseObj && baseObj->GetFormType() == RE::FormType::IdleMarker) {
+                continue;
+            }
             desiredRefs[info.formId] = info.ref;
         }
     }
