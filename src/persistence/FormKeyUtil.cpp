@@ -21,15 +21,55 @@ std::string FormKeyUtil::BuildFormKey(RE::TESForm* form)
         return "";
     }
 
-    // Get the originating file (index 0 = first/primary source file)
-    auto* file = form->GetFile(0);
-    if (!file) {
-        spdlog::trace("FormKeyUtil: Form {:08X} has no source file (dynamic form?)",
-            form->GetFormID());
+    // Derive the owning plugin from the runtime FormID's own load order index,
+    // NOT from GetFile(0).
+    //
+    // GetFile(0) returns a file from the form's source-file list, which for an
+    // OVERRIDDEN record can be the overriding plugin rather than the plugin that
+    // actually owns the FormID. Example seen in the wild: Jorrvaskr's ember refs
+    // 0x00078039/A/B are owned by Skyrim.esm but overridden by Embers XD.esp -
+    // GetFile(0) reported "Embers XD.esp", so the key was written as
+    // "0x78039~Embers XD.esp". ResolveToRuntimeFormID then recombined that local
+    // ID with Embers XD's compile index (0x4E) producing 0x4E078039, a form that
+    // does not exist, so the edit silently failed to reapply on load.
+    //
+    // The FormID's index byte(s) are authoritative and match what the in-game
+    // console reports. Deriving from them here makes BuildFormKey the exact
+    // inverse of ResolveToRuntimeFormID, guaranteeing a lossless round trip.
+    RE::FormID formId = form->GetFormID();
+
+    // Dynamic/runtime-created forms (0xFF...) have no source plugin at all.
+    if ((formId & 0xFF000000) == 0xFF000000) {
+        spdlog::trace("FormKeyUtil: Form {:08X} is dynamic (no source plugin)", formId);
         return "";
     }
 
-    RE::FormID localId = form->GetLocalFormID();
+    auto* dataHandler = RE::TESDataHandler::GetSingleton();
+    if (!dataHandler) {
+        spdlog::error("FormKeyUtil: TESDataHandler not available");
+        return "";
+    }
+
+    const RE::TESFile* file = nullptr;
+    RE::FormID localId = 0;
+
+    if ((formId & 0xFF000000) == 0xFE000000) {
+        // Light plugin: FE in top byte, smallFileCompileIndex in the next 12 bits
+        auto smallIndex = static_cast<std::uint16_t>((formId >> 12) & 0xFFF);
+        localId = formId & 0xFFF;
+        file = dataHandler->LookupLoadedLightModByIndex(smallIndex);
+    } else {
+        // Regular plugin: compile index in the top byte
+        auto index = static_cast<std::uint8_t>(formId >> 24);
+        localId = formId & 0x00FFFFFF;
+        file = dataHandler->LookupLoadedModByIndex(index);
+    }
+
+    if (!file) {
+        spdlog::warn("FormKeyUtil: Could not resolve owning plugin for form {:08X}", formId);
+        return "";
+    }
+
     std::string_view pluginName = file->GetFilename();
 
     return BuildFormKey(localId, pluginName);

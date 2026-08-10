@@ -19,7 +19,7 @@ std::string BOSTransformEntry::ToIniLine() const
 {
     std::ostringstream ss;
 
-    // Format: formKey|posA(x,y,z),rotA(rx,ry,rz),scale(s),flags(0x...)|100
+    // Format: formKey|posA(x,y,z),rotA(rx,ry,rz),scaleA(percent),flags(0x...)|100
     ss << formKeyString << "|";
 
     // Position
@@ -33,8 +33,26 @@ std::string BOSTransformEntry::ToIniLine() const
        << BaseObjectSwapperParser::FormatFloat(rotation.z) << ")";
 
     // Scale (only if not 1.0)
+    //
+    // scaleA = ABSOLUTE scale override, matching the posA/rotA convention used above.
+    // Plain scale(s) is MULTIPLICATIVE in Base Object Swapper - it multiplies whatever
+    // scale the winning plugin already set, so feeding it the reference's absolute
+    // scale compounds (e.g. an ESP-set 3.4 with scale(2) yields 6.8 instead of 2).
+    //
+    // CRITICAL UNITS DIFFERENCE: scaleA is expressed as a PERCENTAGE, while scale is a
+    // plain multiplier. scaleA(100) == scale(1.0) == normal size. Writing a raw
+    // multiplier into scaleA (e.g. scaleA(1.72)) means 1.72% and renders the object
+    // invisibly small - this is the bug that previously caused scaleA to be abandoned
+    // in favour of the multiplicative scale(). Convert to percent here, and back again
+    // when parsing.
+    //
+    // Verified against Base Object Swapper's own ScaleRange::SetScale: the absolute
+    // branch assigns the value directly into TESObjectREFR::refScale, which is the
+    // engine's uint16 scale-times-100 field. It casts to uint16_t, so the value is
+    // TRUNCATED - fractional percentages are discarded. Round to the nearest whole
+    // percent rather than emitting a fraction that would be silently dropped.
     if (std::abs(scale - 1.0f) > 0.0001f) {
-        ss << ",scale(" << BaseObjectSwapperParser::FormatFloat(scale) << ")";
+        ss << ",scaleA(" << static_cast<int>(std::lround(scale * 100.0f)) << ")";
     }
 
     // Initially Disabled flag for deleted references
@@ -896,8 +914,10 @@ bool BaseObjectSwapperParser::ParsePropertyString(std::string_view props, BOSTra
         std::regex posPattern(R"(posA\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\))");
         // rotA(x,y,z)
         std::regex rotPattern(R"(rotA\s*\(\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*,\s*([+-]?\d*\.?\d+)\s*\))");
-        // scale(s)
-        std::regex scalePattern(R"(scale\s*\(\s*([+-]?\d*\.?\d+)\s*\))");
+        // scaleA(percent) - what we write - or legacy scale(multiplier).
+        // Capture group 1 tells the two apart so the units can be handled correctly:
+        // scaleA is a PERCENTAGE (100 = normal size), scale is a plain multiplier.
+        std::regex scalePattern(R"(scale(A?)\s*\(\s*([+-]?\d*\.?\d+)\s*\))");
         // flags(0x...) - detect Initially Disabled flag
         std::regex flagsPattern(R"(flags\s*\(\s*0x([0-9A-Fa-f]+)\s*\))");
 
@@ -919,9 +939,11 @@ bool BaseObjectSwapperParser::ParsePropertyString(std::string_view props, BOSTra
             entry.rotation.z = std::stof(match[3].str());
         }
 
-        // Parse scale
+        // Parse scale - convert from percent when the absolute scaleA form was used
         if (std::regex_search(propsStr, match, scalePattern)) {
-            entry.scale = std::stof(match[1].str());
+            bool isAbsolutePercent = (match[1].str() == "A");
+            float value = std::stof(match[2].str());
+            entry.scale = isAbsolutePercent ? (value / 100.0f) : value;
         }
 
         // Parse flags - check for Initially Disabled flag
