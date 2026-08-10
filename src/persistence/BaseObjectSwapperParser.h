@@ -16,7 +16,7 @@ namespace Persistence {
 constexpr uint32_t INITIALLY_DISABLED_FLAG = 0x00000800;
 
 // Represents a single transform entry in a BOS INI file
-// Format: origRefID|posA(x,y,z),rotA(rx,ry,rz),scale(s)|100
+// Format: origRefID|posA(x,y,z),rotA(rx,ry,rz),scaleA(percent)|100
 //
 // Comment format (above each entry):
 // ; EditorId|DisplayName|MeshPath
@@ -177,7 +177,7 @@ public:
     // Format a float with reasonable precision (no trailing zeros)
     static std::string FormatFloat(float value);
 
-    // Parse a property string like "posA(1.0,2.0,3.0),rotA(0,0,90),scale(1.5)"
+    // Parse a property string like "posA(1.0,2.0,3.0),rotA(0,0,90),scaleA(150)" (scaleA is percent)
     static bool ParsePropertyString(std::string_view props, BOSTransformEntry& entry);
 
 private:
