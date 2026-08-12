@@ -585,16 +585,29 @@ struct Root : Container {
 // Interface version for compatibility checking
 // Format: Major * 1000000 + Minor * 10000 + Patch * 100 + Build
 //
+// Which lane to bump:
+// - PATCH for a purely additive change: a reserved vtable slot consumed in place,
+//   or a config struct grown behind its structSize guard. Old consumers keep
+//   working against the new provider, because every vtable index they know about
+//   is unchanged and they never call the new slot.
+// - MINOR for a genuinely breaking change: a signature change, a reordered or
+//   removed method, or a struct layout change. Old consumers must be rebuilt.
+//
 // Version Compatibility Rules:
-// - Pre-1.0.0 (version < 1000000): Major AND minor must match exactly.
-//   Example: 0.10.1.0 and 0.10.0.0 are compatible, 0.10.x and 0.9.x are NOT.
+// - Pre-1.0.0 (version < 1000000): Major AND minor must match exactly, and the
+//   provider's patch must be >= the consumer's expected patch. A consumer that
+//   calls a method added in patch N therefore refuses a provider older than N,
+//   while a consumer built before N still accepts the newer provider.
 // - Post-1.0.0 (version >= 1000000): Backwards compatible within same major.
 //   Provider minor version must be >= consumer expected minor.
 //   Only major version changes break compatibility.
+//
+// 0.9.6.0 added Container::RemoveChild in the _container_reserved1 slot. That is
+// additive, so it is a patch bump and every 0.9.x consumer keeps working.
 constexpr uint32_t P3DUI_INTERFACE_VERSION =
     0 * 1000000 +
-    10 * 10000 +
-    0 * 100 +
+    9 * 10000 +
+    6 * 100 +
     0;
 
 struct Interface001 {

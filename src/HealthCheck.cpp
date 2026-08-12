@@ -19,10 +19,18 @@ bool HealthCheck::IsVersionCompatible(uint32_t actualVersion, uint32_t expectedV
     UnpackVersion(actualVersion, actualMajor, actualMinor, actualPatch, actualBuild);
     UnpackVersion(expectedVersion, expectedMajor, expectedMinor, expectedPatch, expectedBuild);
 
-    // Pre-1.0.0: API is unstable, major AND minor must match exactly
-    // (e.g., 0.10.1.0 and 0.10.0.0 is OK, 0.10.x and 0.9.x is NOT)
+    // Pre-1.0.0: minor is the breaking lane, patch is the additive lane.
+    // Major and minor must match exactly; the provider's patch must be at least
+    // what we were built against, because a newer patch only ever adds methods in
+    // reserved vtable slots. This is what lets a 3DUI patch release stay a drop-in
+    // upgrade for consumers built before it, while still refusing a provider too
+    // old to implement the methods we actually call.
+    // (0.9.6.0 provider is OK for a 0.9.5.0 consumer; 0.9.5.0 provider is NOT OK
+    //  for a 0.9.6.0 consumer; 0.10.x and 0.9.x are never compatible either way.)
     if (expectedMajor < 1) {
-        return (actualMajor == expectedMajor) && (actualMinor == expectedMinor);
+        return (actualMajor == expectedMajor)
+            && (actualMinor == expectedMinor)
+            && (actualPatch >= expectedPatch);
     }
 
     // Post-1.0.0: Standard semver - backwards compatible unless major changes
@@ -42,16 +50,19 @@ bool HealthCheck::AreDependenciesUpToDate()
         return m_dependenciesUpToDate;
     }
 
-    m_dependencyCheckDone = true;
-    m_dependenciesUpToDate = true;
-
-    // Check 3DUI interface
+    // Check 3DUI interface. Deliberately do NOT latch when 3DUI is merely absent:
+    // this can be reached before 3DUI has registered its interface, and latching a
+    // negative there would disable VR Editor for the whole session over a startup
+    // race. Re-checking is cheap - the interface pointer is cached once acquired.
     auto* p3dui = P3DUI::GetInterface001();
     if (!p3dui) {
-        spdlog::warn("HealthCheck: 3DUI interface not available");
-        m_dependenciesUpToDate = false;
+        spdlog::warn("HealthCheck: 3DUI interface not available (not latching, will re-check)");
         return false;
     }
+
+    // 3DUI answered, so its version is final for this session - safe to latch.
+    m_dependencyCheckDone = true;
+    m_dependenciesUpToDate = true;
 
     uint32_t actualVersion = p3dui->GetInterfaceVersion();
     uint32_t expectedVersion = P3DUI::P3DUI_INTERFACE_VERSION;
@@ -111,16 +122,28 @@ void HealthCheck::MayShowDependenciesErrorMessage()
         UnpackVersion(p3dui->GetInterfaceVersion(), actualMajor, actualMinor, actualPatch, actualBuild);
         UnpackVersion(P3DUI::P3DUI_INTERFACE_VERSION, expectedMajor, expectedMinor, expectedPatch, expectedBuild);
 
+        // Name the actual problem. Too old is the common case and the user can fix
+        // it by updating 3DUI; too new means their VR Editor is the stale one.
+        const bool tooOld = p3dui->GetInterfaceVersion() < P3DUI::P3DUI_INTERFACE_VERSION;
+
         auto msg = fmt::format(
-            "VR Editor: Incompatible 3DUI version!\n\n"
-            "Installed: {}.{}.{}.{}\n"
-            "Required:  {}.{}.{}.{}\n\n"
-            "VR Editor functionality has been disabled.\n"
-            "Please update 3DUI to a compatible version.",
+            "VR Editor: your 3DUI is {}!\n\n"
+            "Installed 3DUI: {}.{}.{}.{}\n"
+            "Required 3DUI:  {}.{}.{}.{} or newer\n\n"
+            "VR Editor has shut itself down for this session to avoid\n"
+            "misbehaving. Nothing else has been changed and the rest of\n"
+            "your game is unaffected.\n\n"
+            "{}",
+            tooOld ? "too old for this version of VR Editor" : "newer than this version of VR Editor expects",
             actualMajor, actualMinor, actualPatch, actualBuild,
-            expectedMajor, expectedMinor, expectedPatch, expectedBuild);
+            expectedMajor, expectedMinor, expectedPatch, expectedBuild,
+            tooOld ? "Please update 3DUI, then restart the game."
+                   : "Please update VR Editor, then restart the game.");
 
         RE::DebugMessageBox(msg.c_str());
-        spdlog::error("HealthCheck: Displayed message box - 3DUI version incompatible. Functionality disabled.");
+        spdlog::error("HealthCheck: Displayed message box - 3DUI {} ({}.{}.{}.{} installed, {}.{}.{}.{} required). Functionality disabled for this session.",
+            tooOld ? "too old" : "too new",
+            actualMajor, actualMinor, actualPatch, actualBuild,
+            expectedMajor, expectedMinor, expectedPatch, expectedBuild);
     }
 }

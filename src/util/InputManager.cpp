@@ -1,6 +1,7 @@
 #include "InputManager.h"
 #include "MenuChecker.h"
 #include "../log.h"
+#include "../HealthCheck.h"
 #include "../interfaces/ThreeDUIInterface001.h"
 #include <algorithm>
 #include <cmath>
@@ -286,9 +287,14 @@ bool InputManager::OnControllerStateChanged(
 		vr::ButtonMaskFromId(vr::k_EButton_SteamVR_Trigger) |
 		vr::ButtonMaskFromId(vr::k_EButton_Grip);
 
+	// When VR Editor has shut itself down over an incompatible 3DUI, don't consult
+	// 3DUI at all and don't filter anything - the player keeps their trigger and
+	// grip exactly as the game would deliver them.
 	bool p3duiHovering = false;
-	if (auto* p3dui = P3DUI::GetInterface001()) {
-		p3duiHovering = p3dui->IsHovering(isLeft, false);
+	if (!HealthCheck::GetSingleton()->IsFunctionalityDisabled()) {
+		if (auto* p3dui = P3DUI::GetInterface001()) {
+			p3duiHovering = p3dui->IsHovering(isLeft, false);
+		}
 	}
 
 	// Filter out trigger/grip from processing if 3DUI is being hovered
