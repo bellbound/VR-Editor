@@ -602,12 +602,13 @@ struct Root : Container {
 //   Provider minor version must be >= consumer expected minor.
 //   Only major version changes break compatibility.
 //
-// 0.9.6.0 added Container::RemoveChild in the _container_reserved1 slot. That is
-// additive, so it is a patch bump and every 0.9.x consumer keeps working.
+// 0.10.1.0 added Container::RemoveChild in the _container_reserved1 slot. That is
+// additive, so it is a patch bump: every consumer built against 0.10.0.0 keeps
+// working against it without a rebuild.
 constexpr uint32_t P3DUI_INTERFACE_VERSION =
     0 * 1000000 +
-    9 * 10000 +
-    6 * 100 +
+    10 * 10000 +
+    1 * 100 +
     0;
 
 struct Interface001 {

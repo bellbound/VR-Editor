@@ -25,8 +25,8 @@ bool HealthCheck::IsVersionCompatible(uint32_t actualVersion, uint32_t expectedV
     // reserved vtable slots. This is what lets a 3DUI patch release stay a drop-in
     // upgrade for consumers built before it, while still refusing a provider too
     // old to implement the methods we actually call.
-    // (0.9.6.0 provider is OK for a 0.9.5.0 consumer; 0.9.5.0 provider is NOT OK
-    //  for a 0.9.6.0 consumer; 0.10.x and 0.9.x are never compatible either way.)
+    // (0.10.1.0 provider is OK for a 0.10.0.0 consumer; 0.10.0.0 provider is NOT OK
+    //  for a 0.10.1.0 consumer; 0.10.x and 0.9.x are never compatible either way.)
     if (expectedMajor < 1) {
         return (actualMajor == expectedMajor)
             && (actualMinor == expectedMinor)
