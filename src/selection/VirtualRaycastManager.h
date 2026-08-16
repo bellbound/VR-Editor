@@ -47,10 +47,13 @@ public:
     void OnFrameUpdate(float deltaTime) override;
 
     // Query: refs within adaptive proximity radius (updated at scan rate, not per-frame)
-    const std::vector<RE::TESObjectREFR*>& GetVisibleRefs() const { return m_visibleRefs; }
+    // Handles, not pointers: the cell can unload between scans and free every ref in here.
+    // Resolve with handle.get() and skip the ones that come back null.
+    const std::vector<RE::ObjectRefHandle>& GetVisibleHandles() const { return m_visibleHandles; }
 
     // Query: closest ref whose selection sphere the ray intersects (or nullptr)
-    RE::TESObjectREFR* GetHoveredRef() const { return m_hoveredRef; }
+    // Resolved fresh from the handle — only safe to use within the current frame.
+    RE::TESObjectREFR* GetHoveredRef() const;
 
     // Query: distance along ray to hovered ref's selection sphere intersection
     float GetHoveredDistance() const { return m_hoveredDistance; }
@@ -81,8 +84,9 @@ private:
     VirtualRaycastManager& operator=(const VirtualRaycastManager&) = delete;
 
     // Cached candidate from periodic scan
+    // Held as a handle so a ref freed by a cell unload resolves to null instead of dangling
     struct CandidateRef {
-        RE::TESObjectREFR* ref;
+        RE::ObjectRefHandle handle;
         RE::FormID formId;
         RE::NiPoint3 position;
         float distanceSq;  // squared distance from player, computed during scan
@@ -106,10 +110,10 @@ private:
     float m_scanTimer = 0.0f;
 
     // Proximity-based visible refs (updated at scan rate)
-    std::vector<RE::TESObjectREFR*> m_visibleRefs;
+    std::vector<RE::ObjectRefHandle> m_visibleHandles;
 
     // Hovered ref (sphere-size hysteresis: kSelectionSphereRadius to acquire, kUnhoverSphereRadius to retain)
-    RE::TESObjectREFR* m_hoveredRef = nullptr;
+    RE::ObjectRefHandle m_hoveredHandle;
     float m_hoveredDistance = 0.0f;
 
     // Toggle state (persisted to cosave)

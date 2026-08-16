@@ -46,7 +46,7 @@ void VirtualRaycastManager::OnFrameUpdate(float deltaTime)
 {
     // Bail early if light selection is toggled off
     if (!s_lightSelectionEnabled) {
-        if (m_hoveredRef || !m_visibleRefs.empty()) {
+        if (m_hoveredHandle || !m_visibleHandles.empty()) {
             Clear();
         }
         return;
@@ -59,7 +59,7 @@ void VirtualRaycastManager::OnFrameUpdate(float deltaTime)
     }
     auto state = stateManager->GetState();
     if (state != EditModeState::Selecting && state != EditModeState::RemotePlacement) {
-        if (m_hoveredRef || !m_visibleRefs.empty()) {
+        if (m_hoveredHandle || !m_visibleHandles.empty()) {
             Clear();
         }
         return;
@@ -97,9 +97,16 @@ void VirtualRaycastManager::OnFrameUpdate(float deltaTime)
 
 void VirtualRaycastManager::Clear()
 {
-    m_visibleRefs.clear();
-    m_hoveredRef = nullptr;
+    m_candidates.clear();
+    m_visibleHandles.clear();
+    m_hoveredHandle.reset();
     m_hoveredDistance = 0.0f;
+}
+
+RE::TESObjectREFR* VirtualRaycastManager::GetHoveredRef() const
+{
+    // Resolve every call: the ref behind the handle can be freed at any cell unload
+    return m_hoveredHandle ? m_hoveredHandle.get().get() : nullptr;
 }
 
 bool VirtualRaycastManager::IsVirtualRaycastCandidate(RE::TESObjectREFR* ref)
@@ -154,7 +161,7 @@ float VirtualRaycastManager::RaySphereIntersect(const RE::NiPoint3& O, const RE:
 void VirtualRaycastManager::ScanCandidates()
 {
     m_candidates.clear();
-    m_visibleRefs.clear();
+    m_visibleHandles.clear();
 
     auto* tes = RE::TES::GetSingleton();
     auto* player = RE::PlayerCharacter::GetSingleton();
@@ -180,7 +187,7 @@ void VirtualRaycastManager::ScanCandidates()
         float dz = pos.z - playerPos.z;
         float dSq = dx * dx + dy * dy + dz * dz;
 
-        m_candidates.push_back({ref, ref->GetFormID(), pos, dSq});
+        m_candidates.push_back({ref->GetHandle(), ref->GetFormID(), pos, dSq});
 
         return RE::BSContainer::ForEachResult::kContinue;
     });
@@ -213,40 +220,42 @@ void VirtualRaycastManager::ScanCandidates()
 
     // Populate visible refs: all within final radius, capped at kMaxVisibleRefs
     size_t limit = count < static_cast<size_t>(kMaxVisibleRefs) ? count : static_cast<size_t>(kMaxVisibleRefs);
-    m_visibleRefs.reserve(limit);
+    m_visibleHandles.reserve(limit);
     for (size_t i = 0; i < limit; ++i) {
-        m_visibleRefs.push_back(m_candidates[i].ref);
+        m_visibleHandles.push_back(m_candidates[i].handle);
     }
 
     spdlog::trace("VirtualRaycastManager: {} candidates, {} visible (radius {:.0f})",
-        m_candidates.size(), m_visibleRefs.size(), std::sqrt(radiusSq));
+        m_candidates.size(), m_visibleHandles.size(), std::sqrt(radiusSq));
 }
 
 void VirtualRaycastManager::TestRayAgainstCandidates(const RE::NiPoint3& origin, const RE::NiPoint3& direction)
 {
     // NOTE: m_visibleRefs is populated by ScanCandidates() (proximity-based), not here
 
-    RE::TESObjectREFR* frameHoveredRef = nullptr;
+    RE::ObjectRefHandle frameHoveredHandle;
     float frameHoveredDistance = FLT_MAX;
 
     for (auto& candidate : m_candidates) {
-        if (!candidate.ref || candidate.ref->IsDisabled() || candidate.ref->IsDeleted()) {
+        // Resolve the handle — the ref may have been freed since the last scan
+        RE::NiPointer<RE::TESObjectREFR> ref = candidate.handle ? candidate.handle.get() : nullptr;
+        if (!ref || ref->IsDisabled() || ref->IsDeleted()) {
             continue;
         }
 
         // Update cached position (refs could theoretically move)
-        candidate.position = candidate.ref->GetPosition();
+        candidate.position = ref->GetPosition();
 
         // Sphere-size hysteresis: use larger radius to retain hover, smaller to acquire
-        float radius = (candidate.ref == m_hoveredRef) ? kUnhoverSphereRadius : kSelectionSphereRadius;
+        float radius = (candidate.handle == m_hoveredHandle) ? kUnhoverSphereRadius : kSelectionSphereRadius;
         float selT = RaySphereIntersect(origin, direction, candidate.position, radius);
         if (selT >= 0.0f && selT < frameHoveredDistance) {
-            frameHoveredRef = candidate.ref;
+            frameHoveredHandle = candidate.handle;
             frameHoveredDistance = selT;
         }
     }
 
-    m_hoveredRef = frameHoveredRef;
+    m_hoveredHandle = frameHoveredHandle;
     m_hoveredDistance = frameHoveredDistance;
 }
 

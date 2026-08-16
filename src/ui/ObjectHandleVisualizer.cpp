@@ -195,29 +195,33 @@ void ObjectHandleVisualizer::UpdateSlotAssignments()
     std::unordered_map<RE::FormID, RE::TESObjectREFR*> desiredRefs;
 
     // Source 1: Visible refs from proximity scan (adaptive radius around player)
+    // Handles, not pointers — a cell unload between scans frees the refs the scan found
     auto* virtualManager = Selection::VirtualRaycastManager::GetSingleton();
-    const auto& visibleRefs = virtualManager->GetVisibleRefs();
-    for (auto* ref : visibleRefs) {
+    for (const auto& handle : virtualManager->GetVisibleHandles()) {
+        RE::NiPointer<RE::TESObjectREFR> ref = handle ? handle.get() : nullptr;
         if (ref) {
             // Idle marker handles disabled for now — re-enable by removing this guard
             auto* baseObj = ref->GetBaseObject();
             if (baseObj && baseObj->GetFormType() == RE::FormType::IdleMarker) {
                 continue;
             }
-            desiredRefs[ref->GetFormID()] = ref;
+            desiredRefs[ref->GetFormID()] = ref.get();
         }
     }
 
     // Source 2: Selected lights (always visible regardless of ray direction)
+    // SelectionState keeps raw pointers that outlive their refs, so go through the form
+    // table by FormID instead of trusting info.ref
     auto* selectionState = Selection::SelectionState::GetSingleton();
     for (const auto& info : selectionState->GetSelection()) {
-        if (info.ref && Selection::VirtualRaycastManager::IsVirtualRaycastCandidate(info.ref)) {
+        auto* ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(info.formId);
+        if (ref && Selection::VirtualRaycastManager::IsVirtualRaycastCandidate(ref)) {
             // Idle marker handles disabled for now — re-enable by removing this guard
-            auto* baseObj = info.ref->GetBaseObject();
+            auto* baseObj = ref->GetBaseObject();
             if (baseObj && baseObj->GetFormType() == RE::FormType::IdleMarker) {
                 continue;
             }
-            desiredRefs[info.formId] = info.ref;
+            desiredRefs[info.formId] = ref;
         }
     }
 
@@ -258,21 +262,24 @@ void ObjectHandleVisualizer::UpdateActiveSlots()
         }
 
         // Look up the ref for this slot to update its position
+        RE::NiPointer<RE::TESObjectREFR> held;
         RE::TESObjectREFR* ref = nullptr;
 
-        // Check virtual raycast visible refs
-        for (auto* vRef : virtualManager->GetVisibleRefs()) {
+        // Check virtual raycast visible refs (handles — freed refs resolve to null)
+        for (const auto& handle : virtualManager->GetVisibleHandles()) {
+            RE::NiPointer<RE::TESObjectREFR> vRef = handle ? handle.get() : nullptr;
             if (vRef && vRef->GetFormID() == slot.assignedFormId) {
-                ref = vRef;
+                held = vRef;
+                ref = vRef.get();
                 break;
             }
         }
 
-        // Check selection state
+        // Check selection state (resolve by FormID; info.ref can be stale)
         if (!ref) {
             for (const auto& info : selectionState->GetSelection()) {
                 if (info.formId == slot.assignedFormId) {
-                    ref = info.ref;
+                    ref = RE::TESForm::LookupByID<RE::TESObjectREFR>(info.formId);
                     break;
                 }
             }
