@@ -44,7 +44,10 @@ public:
     // Configuration
     static constexpr float kUpdatesPerSecond = 15.0f;
     static constexpr int kMaxVisibleIcons = 32;
-    static constexpr float kIconScale = 1.5f;
+    // 6.0 rather than 1.5: SetScale used to skip the 0.25 multiplier ElementConfig
+    // applies, so every activated handle was really drawn at 6.0. 3DUI now treats
+    // the two paths alike, and this keeps the handles the size they have been.
+    static constexpr float kIconScale = 6.0f;
     static constexpr float kSmoothingFactor = 999.0f;  // Effectively instant (higher = more responsive)
     // Light icon textures
     static constexpr const char* kDefaultTexture = "textures\\VREditor\\light.dds";

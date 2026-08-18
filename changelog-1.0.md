@@ -9,3 +9,6 @@ Grid Mode:
 
 3DUI Update:
 - VR Editor now required 3DUI 0.10
+- Requires 3DUI 0.10.4: element scale means the same thing at creation and at
+  runtime there now, so the object handles and the sphere-select radius are sized
+  against the corrected scale and look exactly as before

@@ -508,8 +508,14 @@ struct ScrollableContainer : Container {
     // - horizontalOrigin: Left/Center/Right - which horizontal edge/center is at X=0
     virtual void SetOrigin(VerticalOrigin verticalOrigin, HorizontalOrigin horizontalOrigin) = 0;
 
+    // === Visible Extent ===
+    // Size of the visible window along the scroll axis, in game units: the
+    // height for a RowGrid, the width for a ColumnGrid. Content beyond it is
+    // hidden and reachable by scrolling. Overrides the value the grid was
+    // created with, so one grid can be resized as its contents change.
+    virtual void SetVisibleExtent(float extent) = 0;
+
     // === Reserved for future expansion ===
-    virtual void _scrollable_reserved1() {}
     virtual void _scrollable_reserved2() {}
     virtual void _scrollable_reserved3() {}
     virtual void _scrollable_reserved4() {}
@@ -605,10 +611,23 @@ struct Root : Container {
 // 0.10.1.0 added Container::RemoveChild in the _container_reserved1 slot. That is
 // additive, so it is a patch bump: every consumer built against 0.10.0.0 keeps
 // working against it without a rebuild.
+//
+// 0.10.3.0 adds the mesh preflight check. Nothing in this header moved - no slot
+// consumed, no struct grown - so it is a patch bump for the same reason: consumers
+// built against any 0.10.x keep working untouched. The number moves anyway so the
+// release is distinguishable in MO2 and on Nexus.
+//
+// 0.10.4.0 added ScrollableContainer::SetVisibleExtent in the _scrollable_reserved1
+// slot - additive, so a patch bump on the same grounds as 0.10.1.0. The same
+// release also made Element/Text::SetScale apply the same internal multiplier
+// their config counterpart does (0.25 for elements, 1.25 for text). That is a
+// behaviour fix, not a signature change, but a consumer that was built against
+// an older header and calls SetScale draws those elements at a quarter of the
+// size it used to until its own scale constants are rescaled.
 constexpr uint32_t P3DUI_INTERFACE_VERSION =
     0 * 1000000 +
     10 * 10000 +
-    1 * 100 +
+    4 * 100 +
     0;
 
 struct Interface001 {

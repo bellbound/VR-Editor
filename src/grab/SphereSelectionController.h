@@ -50,6 +50,7 @@ public:
     static constexpr float kMaxRayDistance = 10000.0f;     // Max distance for placement ray
     static constexpr float kThumbstickDeadzone = 0.3f;    // Deadzone for thumbstick input
     static constexpr float kRadiusScaleSpeed = 50.0f;     // Radius change per second at full thumbstick
+    static constexpr float kSphereScalePerRadius = 4.0f;  // 3DUI scales elements by 0.25 internally
 
 private:
     SphereSelectionController() = default;

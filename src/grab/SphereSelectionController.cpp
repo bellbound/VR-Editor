@@ -413,8 +413,9 @@ void SphereSelectionController::CreateSphereVisual()
     // Create sphere element
     P3DUI::ElementConfig elemCfg = P3DUI::ElementConfig::Default("sphere");
     elemCfg.modelPath = "meshes\\3DUI\\unit-sphere.nif";
-    // Unit sphere mesh (radius 1.0), scale directly to match selection radius
-    elemCfg.scale = m_radius;
+    // Unit sphere mesh (radius 1.0). 3DUI multiplies element scale by 0.25
+    // internally, so 4x the radius draws a sphere of exactly that radius.
+    elemCfg.scale = m_radius * kSphereScalePerRadius;
     elemCfg.facingMode = P3DUI::FacingMode::None;
     elemCfg.smoothingFactor = 17.0f;
 
@@ -440,9 +441,9 @@ void SphereSelectionController::UpdateSphereVisual()
     // Update sphere position to match ray hit point
     m_sphereRoot->SetLocalPosition(m_sphereCenter.x, m_sphereCenter.y, m_sphereCenter.z);
 
-    // Update scale if radius changed (unit sphere, scale = radius)
+    // Update scale if radius changed (unit sphere, see CreateSphereVisual)
     if (m_sphereElement) {
-        m_sphereElement->SetScale(m_radius);
+        m_sphereElement->SetScale(m_radius * kSphereScalePerRadius);
     }
 }
 
